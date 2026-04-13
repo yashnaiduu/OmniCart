@@ -1,0 +1,77 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id           String       @id @default(uuid()) @map("user_id")
+  email        String       @unique
+  passwordHash String       @map("password_hash")
+  createdAt    DateTime     @default(now()) @map("created_at")
+
+  Preference Preference?
+  Collections Collection[]
+  Orders     Order[]
+
+  @@map("users")
+}
+
+model Preference {
+  id               String   @id @map("user_id")
+  brandPreferences Json?    @map("brand_preferences")
+  budgetLimit      Int?     @map("budget_limit")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [id], references: [id])
+
+  @@map("preferences")
+}
+
+model Collection {
+  id        String   @id @default(uuid()) @map("collection_id")
+  userId    String   @map("user_id")
+  name      String
+  type      String?
+  frequency String?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user  User             @relation(fields: [userId], references: [id])
+  items CollectionItem[]
+
+  @@index([userId])
+  @@map("collections")
+}
+
+model CollectionItem {
+  id             String  @id @default(uuid()) @map("item_id")
+  collectionId   String  @map("collection_id")
+  name           String?
+  quantity       String?
+  normalizedName String? @map("normalized_name")
+  category       String?
+  // Note: tsv tsvector column is handled natively in PG. For Prisma we omit it or manage migrations manually.
+
+  collection Collection @relation(fields: [collectionId], references: [id])
+
+  @@index([collectionId])
+  @@index([normalizedName])
+  @@map("collection_items")
+}
+
+model Order {
+  id            String   @id @default(uuid()) @map("order_id")
+  userId        String?  @map("user_id")
+  totalCost     Int?     @map("total_cost")
+  platformSplit Json?    @map("platform_split")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  user User? @relation(fields: [userId], references: [id])
+
+  @@map("orders")
+}
