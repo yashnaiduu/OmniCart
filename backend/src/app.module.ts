@@ -79,6 +79,6 @@ import { AppService } from './app.service';
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
     // Apply request-id middleware to all routes
-    consumer.apply(RequestIdMiddleware).forRoutes('*');
+    consumer.apply(RequestIdMiddleware).forRoutes('*path');
   }
 }
