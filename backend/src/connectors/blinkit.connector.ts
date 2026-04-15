@@ -4,8 +4,9 @@ import { scrapePage } from './browser-pool';
 
 /**
  * Blinkit Connector — Headless Chrome
- * Verified: In headless mode, products render as flat text.
- * Pattern: {discount}% OFF\n{ETA} MINS\n{name}\n{qty}\n₹{price}\nADD
+ * Uses innerText parsing + DOM image extraction.
+ * Images are matched by collecting all product-like <img> elements
+ * and correlating them with parsed products by order.
  */
 @Injectable()
 export class BlinkitConnector implements Connector {
@@ -22,14 +23,37 @@ export class BlinkitConnector implements Connector {
       async (page) => {
         // Dismiss location modal
         try { await page.keyboard.press('Escape'); } catch { /* ok */ }
-        await new Promise((r) => setTimeout(r, 3000));
+        // Wait for product grid to render (including images)
+        await new Promise((r) => setTimeout(r, 5000));
 
-        return page.evaluate((q: string) => {
+        return page.evaluate(() => {
           const items: any[] = [];
+          const seen = new Set<string>();
+
+          // Collect product images by URL pattern (NOT by dimensions — headless Chrome
+          // reports width/height=0 for images that haven't been laid out yet)
+          const allImages = Array.from(document.querySelectorAll('img'));
+          const productImages = allImages.filter((img) => {
+            const src = img.src || img.getAttribute('data-src') || '';
+            // Blinkit product images come from CDN domains
+            return (
+              src.startsWith('http') &&
+              !src.includes('data:image') &&
+              !src.endsWith('.svg') &&
+              !src.includes('/logo') &&
+              !src.includes('/icon') &&
+              !src.includes('/banner') &&
+              !src.includes('google') &&
+              !src.includes('facebook') &&
+              !src.includes('analytics') &&
+              (src.includes('cdn') || src.includes('grofers') || src.includes('blinkit') || src.includes('cloudfront') || src.includes('/product') || /\.(jpg|jpeg|png|webp)/i.test(src))
+            );
+          });
+
+          // InnerText parsing — proven to work on Blinkit
           const bodyText = document.body?.innerText || '';
           const lines = bodyText.split('\n').map((l: string) => l.trim()).filter((l: string) => l.length > 0);
 
-          // Find the "Showing results" marker to know where products start
           let startIdx = 0;
           for (let i = 0; i < lines.length; i++) {
             if (lines[i].includes('Showing results')) {
@@ -38,61 +62,55 @@ export class BlinkitConnector implements Connector {
             }
           }
 
-          // Parse pattern: {optional discount}% OFF → {ETA} MINS → {name} → {qty} → ₹{price} → ADD
+          let imageIndex = 0;
           for (let i = startIdx; i < lines.length; i++) {
-            // Look for "ADD" buttons as product delimiters
             if (lines[i] === 'ADD') {
-              // Walk backwards to find the product info
               let name = '';
               let price = 0;
               let quantity = '';
               let eta = 16;
 
-              // Scan backwards from ADD
               for (let j = i - 1; j >= Math.max(startIdx, i - 6); j--) {
                 const line = lines[j];
-
-                // Price line: ₹XX
                 if (line.startsWith('₹') && price === 0) {
                   price = parseFloat(line.replace(/[^\d.]/g, '')) || 0;
-                }
-                // Quantity line: patterns like "500 ml", "1 ltr", "1 kg"
-                else if (/^\d+\s*(ml|g|kg|ltr|l|pack|pcs|pouch)/i.test(line) && !quantity) {
+                } else if (/^\d+\s*(ml|g|kg|ltr|l|pack|pcs|pouch|piece)/i.test(line) && !quantity) {
                   quantity = line;
-                }
-                // ETA line: "16 MINS"
-                else if (/^\d+\s*MINS?$/i.test(line)) {
+                } else if (/^\d+\s*MINS?$/i.test(line)) {
                   eta = parseInt(line) || 16;
-                }
-                // Discount: "13% OFF"
-                else if (/^\d+%\s*OFF$/i.test(line)) {
-                  // skip
-                }
-                // Name: anything else that's long enough
-                else if (line.length > 3 && !line.startsWith('₹') && !name) {
+                } else if (/^\d+%\s*OFF$/i.test(line)) {
+                  // skip discounts
+                } else if (line.length > 3 && !line.startsWith('₹') && !name) {
                   name = line;
                 }
               }
 
-              if (name && name.length > 3) {
+              if (name && name.length > 3 && !seen.has(name)) {
+                seen.add(name);
+                // Match image by index — product images appear in same order as products
+                const img = productImages[imageIndex] || null;
+                const imgSrc = img ? (img.src || img.getAttribute('data-src') || '') : '';
+                imageIndex++;
+
                 items.push({
                   name,
-                  normalized_name: q.toLowerCase(),
+                  normalized_name: name.toLowerCase().replace(/[^a-z0-9\s]/g, '').trim(),
                   price,
                   currency: 'INR',
                   quantity,
                   platform: 'blinkit',
                   eta_minutes: eta,
                   in_stock: true,
+                  image_url: imgSrc || undefined,
                 });
               }
             }
           }
 
           return items.slice(0, 15);
-        }, query);
+        });
       },
-      5000,
+      6000,
     );
 
     const result = products || [];

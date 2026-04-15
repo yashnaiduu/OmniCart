@@ -75,7 +75,7 @@ export function ProductCard({
           </div>
         ) : (
           <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-[#F3F4F6] border border-gray-100 flex items-center justify-center shrink-0">
-            <span className="text-2xl opacity-40">🛒</span>
+            <span className="text-sm font-bold text-[#9CA3AF]">{(options[0]?.normalized_name || name).charAt(0).toUpperCase()}</span>
           </div>
         )}
         <div className="min-w-0 flex-1">

@@ -8,11 +8,11 @@ import { useEffect, useState } from 'react';
 import { CartDrawer } from './CartDrawer';
 
 const navItems = [
-  { href: '/', label: 'Home', icon: '🏠' },
-  { href: '/search', label: 'Search', icon: '🔍' },
-  { href: '/collections', label: 'Lists', icon: '📋' },
-  { href: '/dashboard', label: 'Savings', icon: '📊' },
-  { href: '/profile', label: 'Profile', icon: '⚙️' },
+  { href: '/', label: 'Home' },
+  { href: '/search', label: 'Search' },
+  { href: '/collections', label: 'Lists' },
+  { href: '/dashboard', label: 'Savings' },
+  { href: '/profile', label: 'Settings' },
 ];
 
 export function Navbar() {
@@ -31,7 +31,7 @@ export function Navbar() {
     <nav className="sticky top-0 z-50 bg-white/80 backdrop-blur-xl border-b border-[#F3F4F6] safe-top">
       <div className="max-w-6xl mx-auto px-4 sm:px-6">
         <div className="flex items-center justify-between h-14 sm:h-16">
-          {/* Logo — clean, no gradients */}
+          {/* Logo */}
           <Link href="/" className="flex items-center gap-2.5 outline-none group">
             <div className="w-8 h-8 rounded-xl bg-[#111827] flex items-center justify-center text-white text-sm font-bold">
               O
@@ -41,7 +41,7 @@ export function Navbar() {
             </span>
           </Link>
 
-          {/* Desktop nav — pill style */}
+          {/* Desktop nav */}
           <div className="hidden sm:flex items-center gap-1 p-1 bg-[#F3F4F6] rounded-xl">
             {navItems.map((item) => {
               const isActive = pathname === item.href;
@@ -63,8 +63,8 @@ export function Navbar() {
                       transition={{ type: 'spring' as const, stiffness: 400, damping: 30 }}
                     />
                   )}
-                  <span className="relative flex items-center gap-1.5 z-10">
-                    <span className="opacity-80">{item.icon}</span> {item.label}
+                  <span className="relative z-10">
+                    {item.label}
                   </span>
                 </Link>
               );
@@ -80,7 +80,7 @@ export function Navbar() {
                 onClick={() => setCartOpen(true)}
                 className="flex items-center gap-1.5 px-3 py-1.5 bg-[#111827] text-white rounded-full text-xs font-bold shadow-sm cursor-pointer transition-all duration-200 hover:bg-[#1F2937] active:scale-95"
               >
-                🛒 {cartItems.length}
+                Cart ({cartItems.length})
               </motion.button>
             )}
 
@@ -126,7 +126,6 @@ export function Navbar() {
                   isActive ? 'text-[#2563EB] bg-blue-50' : 'text-[#9CA3AF]'
                 }`}
               >
-                <span className={`text-xl ${isActive ? 'scale-110' : ''} transition-transform duration-200`}>{item.icon}</span>
                 {item.label}
               </Link>
             );

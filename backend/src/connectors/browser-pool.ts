@@ -50,9 +50,10 @@ export async function getStealthPage(): Promise<Page> {
   );
 
   // Block unnecessary resources to speed up page loads
+  // NOTE: 'image' is NOT blocked because connectors need to extract product image URLs
   await page.setRequestInterception(true);
   page.on('request', (req) => {
-    const blocked = ['image', 'stylesheet', 'font', 'media'];
+    const blocked = ['stylesheet', 'font', 'media'];
     if (blocked.includes(req.resourceType())) {
       req.abort();
     } else {

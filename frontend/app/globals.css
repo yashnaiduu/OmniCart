@@ -103,3 +103,12 @@ body {
 .live-dot {
   animation: live-pulse 2s ease-in-out infinite;
 }
+
+/* ── SCROLLBAR HIDE (for horizontal sections) ── */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}

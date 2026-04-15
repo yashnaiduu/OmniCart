@@ -50,7 +50,7 @@ export class AmazonFreshConnector implements Connector {
 
             items.push({
               name,
-              normalized_name: q.toLowerCase(),
+              normalized_name: name.toLowerCase().replace(/[^a-z0-9\s]/g, '').trim(),
               price,
               currency: 'INR',
               quantity: '',

@@ -20,13 +20,12 @@ export default function DashboardPage() {
   }, [hydrate, items]);
 
   const stats = [
-    { label: 'Items in Cart', value: items.length, icon: '🛒' },
-    { label: 'Cart Total', value: `₹${totalCost()}`, icon: '💰' },
-    { label: 'Est. Savings', value: `₹${totalSaved}`, icon: '📉' },
+    { label: 'Items in Cart', value: items.length },
+    { label: 'Cart Total', value: `₹${totalCost()}` },
+    { label: 'Est. Savings', value: `₹${totalSaved}` },
     {
       label: 'Platforms Used',
       value: new Set(items.map((i) => i.selectedOption.platform)).size,
-      icon: '🏪',
     },
   ];
 
@@ -47,10 +46,10 @@ export default function DashboardPage() {
 
       <main className="max-w-4xl mx-auto px-4 sm:px-6 py-8 pb-32 sm:pb-8">
         <h1 className="text-2xl sm:text-3xl font-bold text-[#111827] tracking-tight mb-6 sm:mb-8">
-          📊 Savings Dashboard
+          Savings
         </h1>
 
-        {/* Stats grid — clean, flat design */}
+        {/* Stats */}
         <div className="grid grid-cols-2 gap-3 sm:gap-4 mb-8">
           {stats.map((stat, i) => (
             <motion.div
@@ -60,9 +59,6 @@ export default function DashboardPage() {
               transition={{ delay: i * 0.08, duration: 0.2 }}
               className="soft-card p-4 sm:p-6 border border-gray-100"
             >
-              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-[#F3F4F6] flex items-center justify-center text-lg sm:text-xl mb-3">
-                {stat.icon}
-              </div>
               <p className="text-xs sm:text-sm font-semibold text-[#9CA3AF] uppercase tracking-wider">{stat.label}</p>
               <p className="text-xl sm:text-2xl font-bold text-[#111827] mt-1">{stat.value}</p>
             </motion.div>
@@ -77,7 +73,7 @@ export default function DashboardPage() {
             className="soft-card p-5 sm:p-8 border border-gray-100 mb-6"
           >
             <h2 className="text-xs sm:text-sm font-semibold text-[#9CA3AF] uppercase tracking-widest mb-4 sm:mb-6">
-              📦 Platform Breakdown
+              Platform Breakdown
             </h2>
             <div className="space-y-2.5">
               {Object.entries(platformBreakdown).map(([platform, data]) => (
@@ -93,7 +89,7 @@ export default function DashboardPage() {
           </motion.div>
         )}
 
-        {/* Spending tips */}
+        {/* Tips */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -101,17 +97,17 @@ export default function DashboardPage() {
           className="soft-card p-5 sm:p-8 border border-gray-100"
         >
           <h2 className="text-xs sm:text-sm font-semibold text-[#9CA3AF] uppercase tracking-widest mb-4">
-            💡 Smart Tips
+            Tips
           </h2>
           <div className="space-y-2.5">
             {[
               'Use "cheapest" mode to always pick the lowest price.',
-              'Add items to collections for quick refill reorders.',
-              'Compare across all 5 platforms for the best deals.',
-              'Set a monthly budget to track your spending.',
+              'Add items to collections for quick reorders.',
+              'Compare across all 5 platforms before checkout.',
+              'Set a monthly budget to track spending.',
             ].map((tip, i) => (
               <div key={i} className="flex items-start gap-3 p-3 rounded-xl hover:bg-[#F3F4F6] transition-all duration-200">
-                <span className="text-[#16A34A] mt-0.5">✓</span>
+                <span className="text-[#16A34A] mt-0.5 text-xs font-bold">✓</span>
                 <p className="text-sm text-[#6B7280] font-medium">{tip}</p>
               </div>
             ))}

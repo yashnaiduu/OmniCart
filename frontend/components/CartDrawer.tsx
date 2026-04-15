@@ -16,7 +16,6 @@ export function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
     <AnimatePresence>
       {isOpen && (
         <>
-          {/* Backdrop — subtle, per design.md */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -25,7 +24,6 @@ export function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
             className="fixed inset-0 bg-black/20 backdrop-blur-sm z-50"
           />
 
-          {/* Drawer — clean white, shadow-sm only */}
           <motion.div
             initial={{ x: '100%' }}
             animate={{ x: 0 }}
@@ -36,7 +34,7 @@ export function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
             {/* Header */}
             <div className="flex items-center justify-between px-5 sm:px-6 py-4 border-b border-gray-100">
               <div>
-                <h2 className="text-lg font-bold text-[#111827] tracking-tight">Your Cart</h2>
+                <h2 className="text-lg font-bold text-[#111827] tracking-tight">Cart</h2>
                 <p className="text-xs text-[#9CA3AF] font-medium">{items.length} item{items.length !== 1 ? 's' : ''}</p>
               </div>
               <div className="flex items-center gap-2">
@@ -50,7 +48,7 @@ export function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
                 )}
                 <button
                   onClick={onClose}
-                  className="w-9 h-9 rounded-xl bg-[#F3F4F6] hover:bg-[#E5E7EB] flex items-center justify-center text-[#6B7280] transition-all duration-200"
+                  className="w-9 h-9 rounded-xl bg-[#F3F4F6] hover:bg-[#E5E7EB] flex items-center justify-center text-[#6B7280] transition-all duration-200 text-sm"
                 >
                   ✕
                 </button>
@@ -61,10 +59,7 @@ export function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
             <div className="flex-1 overflow-y-auto px-5 sm:px-6 py-4">
               {items.length === 0 ? (
                 <div className="text-center py-16">
-                  <div className="w-16 h-16 mx-auto bg-[#F3F4F6] rounded-2xl flex items-center justify-center text-3xl mb-4">
-                    🛒
-                  </div>
-                  <p className="text-[#111827] font-semibold">Cart is empty</p>
+                  <p className="text-[#111827] font-semibold">No items in cart</p>
                   <p className="text-[#9CA3AF] text-sm mt-1">Add items from search results</p>
                 </div>
               ) : (
@@ -122,7 +117,7 @@ export function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
                   <span className="text-2xl font-bold text-[#111827]">₹{totalCost()}</span>
                 </div>
                 <p className="text-[10px] text-[#9CA3AF] text-center">
-                  Prices sourced from publicly available data. Final price at checkout on respective platform.
+                  Final price at checkout on respective platform.
                 </p>
               </div>
             )}

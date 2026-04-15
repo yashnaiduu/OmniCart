@@ -93,7 +93,7 @@ export function SearchBar({ onSearch, isLoading }: SearchBarProps) {
             <motion.button
               type="submit"
               whileTap={{ scale: 0.95 }}
-              disabled={isLoading || !query.trim()}
+              disabled={Boolean(isLoading || !query.trim())}
               className="px-4 sm:px-5 py-2.5 sm:py-3 bg-[#111827] text-white rounded-xl text-sm font-bold hover:bg-[#1F2937] disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200 shadow-sm"
             >
               {isLoading ? (

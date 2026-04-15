@@ -1,6 +1,6 @@
 'use client';
 
-import { motion } from 'framer-motion';
+import { motion, Variants } from 'framer-motion';
 import Link from 'next/link';
 import { Navbar } from '@/components/Navbar';
 import { PlatformBadge } from '@/components/ProductCard';
@@ -10,7 +10,7 @@ import { feedApi } from '@/lib/api';
 import { useAuthStore } from '@/store';
 import { useEffect } from 'react';
 
-const container = {
+const container: Variants = {
   hidden: { opacity: 0 },
   show: {
     opacity: 1,
@@ -18,7 +18,7 @@ const container = {
   },
 };
 
-const item = {
+const item: Variants = {
   hidden: { opacity: 0, y: 12 },
   show: { opacity: 1, y: 0, transition: { duration: 0.3, ease: 'easeOut' } },
 };
@@ -44,7 +44,7 @@ export default function HomePage() {
       <Navbar />
 
       <main className="max-w-6xl mx-auto px-4 sm:px-6 py-8 sm:py-12 pb-32 sm:pb-12">
-        {/* Hero — clean, minimal, no gradient blob */}
+        {/* Hero */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -53,14 +53,14 @@ export default function HomePage() {
         >
           <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#F3F4F6] text-[#6B7280] text-xs font-semibold tracking-wide mb-4 sm:mb-6">
             <span className="w-2 h-2 rounded-full bg-[#16A34A] live-dot" />
-            LIVE REAL-TIME PRICES
+            LIVE PRICES
           </div>
           <h1 className="text-4xl sm:text-5xl md:text-7xl font-bold text-[#111827] mb-4 sm:mb-6 tracking-tight leading-[1.1]">
-            Find the best{' '}
-            <span className="text-[#2563EB]">Grocery Deal.</span>
+            Compare grocery prices<br className="hidden sm:block" />
+            <span className="text-[#2563EB]">across 5 platforms.</span>
           </h1>
           <p className="text-base sm:text-xl text-[#6B7280] max-w-2xl mx-auto font-medium leading-relaxed px-4 sm:px-0">
-            Real-time price comparison across Blinkit, Zepto, Instamart, BigBasket & Amazon Fresh.
+            Search once. See prices from Blinkit, Zepto, Instamart, BigBasket, and Amazon Fresh side by side.
           </p>
           <div className="mt-8 sm:mt-10">
             <Link href="/search">
@@ -68,7 +68,7 @@ export default function HomePage() {
                 whileTap={{ scale: 0.97 }}
                 className="px-6 sm:px-8 py-3.5 sm:py-4 bg-[#111827] text-white rounded-2xl text-base sm:text-lg font-bold shadow-sm hover:bg-[#1F2937] transition-all duration-200 inline-flex items-center gap-2 active:scale-95"
               >
-                🔍 Start Searching
+                Search Groceries
               </motion.button>
             </Link>
           </div>
@@ -101,8 +101,8 @@ export default function HomePage() {
           >
             {/* Deals */}
             <motion.div variants={item} className="soft-card p-5 sm:p-8 border border-gray-100">
-              <h2 className="text-xs sm:text-sm font-semibold text-[#9CA3AF] uppercase tracking-widest mb-4 sm:mb-6 flex items-center gap-2">
-                <span className="text-lg sm:text-xl">🔥</span> Today&apos;s Deals
+              <h2 className="text-xs sm:text-sm font-semibold text-[#9CA3AF] uppercase tracking-widest mb-4 sm:mb-6">
+                Today&apos;s Deals
               </h2>
               {isLoading ? (
                 <SkeletonFeedCard />
@@ -132,8 +132,8 @@ export default function HomePage() {
 
             {/* Price Drops */}
             <motion.div variants={item} className="soft-card p-5 sm:p-8 border border-gray-100">
-              <h2 className="text-xs sm:text-sm font-semibold text-[#9CA3AF] uppercase tracking-widest mb-4 sm:mb-6 flex items-center gap-2">
-                <span className="text-lg sm:text-xl">📉</span> Price Drops
+              <h2 className="text-xs sm:text-sm font-semibold text-[#9CA3AF] uppercase tracking-widest mb-4 sm:mb-6">
+                Price Drops
               </h2>
               {isLoading ? (
                 <SkeletonFeedCard />
@@ -158,10 +158,10 @@ export default function HomePage() {
               )}
             </motion.div>
 
-            {/* AI Recommendations */}
+            {/* Recommendations */}
             <motion.div variants={item} className="soft-card p-5 sm:p-8 border border-gray-100 lg:col-span-2">
-              <h2 className="text-xs sm:text-sm font-semibold text-[#9CA3AF] uppercase tracking-widest mb-3 flex items-center gap-2">
-                <span className="text-lg sm:text-xl">🧠</span> Smart Recommendations
+              <h2 className="text-xs sm:text-sm font-semibold text-[#9CA3AF] uppercase tracking-widest mb-3">
+                Recommended
               </h2>
               {isLoading ? (
                 <SkeletonFeedCard />
@@ -193,25 +193,19 @@ export default function HomePage() {
           >
             {[
               {
-                icon: '⚡',
-                title: 'Compare Instantly',
-                desc: 'Real-time prices from 5 platforms side by side.',
+                title: 'Compare Prices',
+                desc: 'See prices from 5 platforms side by side in one search.',
               },
               {
-                icon: '🧠',
-                title: 'AI Suggestions',
-                desc: 'Type "pasta dinner" and get the full shopping list.',
+                title: 'Natural Language',
+                desc: 'Type "pasta dinner" and get every item you need.',
               },
               {
-                icon: '💰',
-                title: 'Always Save',
-                desc: 'Pick the cheapest or fastest option every time.',
+                title: 'Save Money',
+                desc: 'Pick the cheapest or fastest delivery every time.',
               },
             ].map((f, i) => (
               <motion.div key={i} variants={item} className="soft-card p-6 sm:p-8 text-center border border-gray-100">
-                <div className="w-14 h-14 sm:w-16 sm:h-16 mx-auto bg-[#F3F4F6] rounded-2xl flex items-center justify-center text-2xl sm:text-3xl mb-4 sm:mb-6">
-                  {f.icon}
-                </div>
                 <h3 className="text-lg sm:text-xl font-bold text-[#111827] mb-2 sm:mb-3 tracking-tight">{f.title}</h3>
                 <p className="text-sm sm:text-base text-[#6B7280] font-medium leading-relaxed">{f.desc}</p>
               </motion.div>
@@ -219,11 +213,11 @@ export default function HomePage() {
           </motion.div>
         )}
 
-        {/* Legal Disclaimer */}
+        {/* Disclaimer */}
         <div className="mt-16 sm:mt-24 text-center pb-4">
           <p className="text-[10px] sm:text-xs text-[#9CA3AF] max-w-xl mx-auto leading-relaxed">
-            Prices and product information are sourced from publicly available data and may not reflect current availability.
-            OmniCart is an independent comparison tool and is not affiliated with, endorsed by, or sponsored by any of the listed platforms.
+            Prices sourced from publicly available data and may not reflect current availability.
+            OmniCart is not affiliated with any listed platform.
           </p>
         </div>
       </main>

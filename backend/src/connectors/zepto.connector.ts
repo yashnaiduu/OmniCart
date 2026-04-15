@@ -4,8 +4,8 @@ import { scrapePage } from './browser-pool';
 
 /**
  * Zepto Connector — Headless Chrome
- * Verified: In headless mode, products render as flat text without data-testid.
- * Uses innerText parsing to extract product names and prices.
+ * Uses innerText parsing + DOM image extraction.
+ * Fixed: price validation to reject absurd values (>₹9999 for groceries).
  */
 @Injectable()
 export class ZeptoConnector implements Connector {
@@ -20,32 +20,54 @@ export class ZeptoConnector implements Connector {
     const products = await scrapePage<Product[]>(
       url,
       async (page) => {
-        // Zepto needs time for JS to fully render
-        await new Promise((r) => setTimeout(r, 6000));
+        // Zepto needs extra time for JS rendering + images
+        await new Promise((r) => setTimeout(r, 7000));
 
-        return page.evaluate((q: string) => {
+        return page.evaluate(() => {
           const items: any[] = [];
-          const bodyText = document.body?.innerText || '';
+          const seen = new Set<string>();
 
-          // Parse Zepto's flat text structure:
-          // Pattern: ADD\n₹{price}\n{optional discount}\n{name}\n{quantity}\n{rating}
+          // Collect product images by URL pattern
+          const allImages = Array.from(document.querySelectorAll('img'));
+          const productImages = allImages.filter((img) => {
+            const src = img.src || img.getAttribute('data-src') || '';
+            return (
+              src.startsWith('http') &&
+              !src.includes('data:image') &&
+              !src.endsWith('.svg') &&
+              !src.includes('/logo') &&
+              !src.includes('/icon') &&
+              !src.includes('/banner') &&
+              !src.includes('google') &&
+              !src.includes('facebook') &&
+              (src.includes('cdn') || src.includes('zepto') || src.includes('cloudfront') || src.includes('/product') || /\.(jpg|jpeg|png|webp)/i.test(src))
+            );
+          });
+
+          // InnerText parsing
+          const bodyText = document.body?.innerText || '';
           const lines = bodyText.split('\n').map((l: string) => l.trim()).filter((l: string) => l.length > 0);
+
+          let imageIndex = 0;
 
           for (let i = 0; i < lines.length; i++) {
             if (lines[i] === 'ADD' && i + 2 < lines.length) {
-              // Next line should be price (₹XX)
               let priceIdx = i + 1;
               let price = 0;
               let name = '';
               let quantity = '';
 
-              // Parse price
+              // Parse price — MUST start with ₹ and be a reasonable grocery price
               const priceText = lines[priceIdx];
               if (priceText && priceText.startsWith('₹')) {
-                price = parseFloat(priceText.replace(/[^\d.]/g, '')) || 0;
+                const parsed = parseFloat(priceText.replace(/[^\d.]/g, '')) || 0;
+                // Sanity check: grocery items should not cost more than ₹9999
+                if (parsed > 0 && parsed < 10000) {
+                  price = parsed;
+                }
               }
 
-              // Skip discount lines like "₹1\nOFF"
+              // Skip discount lines
               let nameIdx = priceIdx + 1;
               while (nameIdx < lines.length && (
                 lines[nameIdx] === 'OFF' ||
@@ -60,7 +82,7 @@ export class ZeptoConnector implements Connector {
                 name = lines[nameIdx];
               }
 
-              // Quantity (next line after name, usually like "1 pack (500 ml)")
+              // Quantity
               if (nameIdx + 1 < lines.length) {
                 const qLine = lines[nameIdx + 1];
                 if (/\d+\s*(pack|g|kg|ml|l|pcs|pouch|piece)/i.test(qLine)) {
@@ -68,23 +90,29 @@ export class ZeptoConnector implements Connector {
                 }
               }
 
-              if (name && name.length > 3 && !name.startsWith('₹') && name !== 'ADD') {
+              if (name && name.length > 3 && !name.startsWith('₹') && name !== 'ADD' && !seen.has(name)) {
+                seen.add(name);
+                const img = productImages[imageIndex] || null;
+                const imgSrc = img ? (img.src || img.getAttribute('data-src') || '') : '';
+                imageIndex++;
+
                 items.push({
                   name,
-                  normalized_name: q.toLowerCase(),
+                  normalized_name: name.toLowerCase().replace(/[^a-z0-9\s]/g, '').trim(),
                   price,
                   currency: 'INR',
                   quantity,
                   platform: 'zepto',
                   eta_minutes: 8,
                   in_stock: true,
+                  image_url: imgSrc || undefined,
                 });
               }
             }
           }
 
           return items.slice(0, 15);
-        }, query);
+        });
       },
       8000,
     );

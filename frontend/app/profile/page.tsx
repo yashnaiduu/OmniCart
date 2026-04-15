@@ -43,7 +43,7 @@ export default function ProfilePage() {
 
       <main className="max-w-2xl mx-auto px-4 sm:px-6 py-8 pb-32 sm:pb-8">
         <h1 className="text-2xl sm:text-3xl font-bold text-[#111827] tracking-tight mb-6 sm:mb-8">
-          ⚙️ Profile
+          Settings
         </h1>
 
         {/* Account */}
@@ -107,9 +107,6 @@ export default function ProfilePage() {
                     : 'bg-[#F3F4F6] text-[#6B7280] hover:bg-[#E5E7EB]'
                 }`}
               >
-                {m === 'cheapest' && '💰 '}
-                {m === 'balanced' && '⚖️ '}
-                {m === 'fastest' && '⚡ '}
                 {m.charAt(0).toUpperCase() + m.slice(1)}
               </motion.button>
             ))}
@@ -144,7 +141,7 @@ export default function ProfilePage() {
                   : 'bg-[#111827] text-white hover:bg-[#1F2937]'
               }`}
             >
-              {budgetSaved ? '✓ Saved' : 'Save'}
+              {budgetSaved ? 'Saved' : 'Save'}
             </motion.button>
           </div>
         </motion.div>
@@ -160,14 +157,14 @@ export default function ProfilePage() {
           <div className="space-y-2">
             <div className="flex justify-between text-sm">
               <span className="text-[#6B7280]">Version</span>
-              <span className="text-[#111827] font-semibold">1.0.0 MVP</span>
+              <span className="text-[#111827] font-semibold">1.0.0</span>
             </div>
             <div className="flex justify-between text-sm">
               <span className="text-[#6B7280]">Platforms</span>
               <span className="text-[#111827] font-semibold">5</span>
             </div>
             <div className="flex justify-between text-sm">
-              <span className="text-[#6B7280]">Default Pincode</span>
+              <span className="text-[#6B7280]">Pincode</span>
               <span className="text-[#111827] font-semibold">{pincode}</span>
             </div>
           </div>

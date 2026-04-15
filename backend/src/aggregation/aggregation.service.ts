@@ -48,7 +48,7 @@ export class AggregationService {
         (query: string, lat: number, lng: number) =>
           connector.search(query, lat, lng),
         {
-          timeout: 20000, // 20s per connector — headless Chrome scraping needs more time
+          timeout: 30000, // 30s per connector — headless Chrome cold start + image loading needs time
           errorThresholdPercentage: 50, // Open circuit at 50% failure rate
           resetTimeout: 60000, // Try again after 1 minute
           volumeThreshold: 5,

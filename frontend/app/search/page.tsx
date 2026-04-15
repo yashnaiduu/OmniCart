@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Navbar } from '@/components/Navbar';
@@ -12,13 +12,152 @@ import { searchApi, SearchItem, ProductOption } from '@/lib/api';
 import { useCartStore, usePreferencesStore } from '@/store';
 import { Suspense } from 'react';
 
+/* ── Horizontal scroll section ── */
+function HorizontalSection({
+  title,
+  items,
+  onAddToCart,
+}: {
+  title: string;
+  items: { item: SearchItem; option: ProductOption }[];
+  onAddToCart: (item: SearchItem, option: ProductOption) => void;
+}) {
+  if (items.length === 0) return null;
+  return (
+    <div className="mb-8">
+      <h3 className="text-xs font-semibold text-[#9CA3AF] uppercase tracking-widest mb-3 px-1">
+        {title}
+      </h3>
+      <div className="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1 snap-x snap-mandatory scrollbar-hide">
+        {items.map(({ item, option }, idx) => (
+          <motion.div
+            key={`${option.platform}-${item.normalized_name}-${idx}`}
+            whileTap={{ scale: 0.98 }}
+            onClick={() => onAddToCart(item, option)}
+            className="snap-start shrink-0 w-[260px] sm:w-[280px] bg-white rounded-2xl p-4 border border-gray-100 shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer"
+          >
+            <div className="flex items-start gap-3 mb-3">
+              {option.image_url ? (
+                <div className="w-12 h-12 rounded-xl bg-[#F3F4F6] border border-gray-100 p-1 flex items-center justify-center shrink-0 overflow-hidden">
+                  <img
+                    src={option.image_url}
+                    alt={item.name}
+                    className="max-w-full max-h-full object-contain"
+                    loading="lazy"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).style.display = 'none';
+                    }}
+                  />
+                </div>
+              ) : (
+                <div className="w-12 h-12 rounded-xl bg-[#F3F4F6] border border-gray-100 flex items-center justify-center shrink-0">
+                  <span className="text-sm font-bold text-[#9CA3AF]">{(item.normalized_name || item.name).charAt(0).toUpperCase()}</span>
+                </div>
+              )}
+              <div className="min-w-0 flex-1 flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-[#111827] capitalize truncate leading-tight">
+                    {item.name}
+                  </p>
+                  <p className="text-xs text-[#9CA3AF] mt-0.5 truncate">
+                    {option.quantity || 'Standard'}
+                  </p>
+                </div>
+                {option.price > 0 && (
+                  <p className="text-lg font-bold text-[#111827] shrink-0">₹{option.price}</p>
+                )}
+              </div>
+            </div>
+            <div className="flex items-center justify-between">
+              <PlatformBadge platform={option.platform} />
+              <span className="text-xs text-[#6B7280] flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#16A34A] live-dot" />
+                {option.eta_minutes} min
+              </span>
+            </div>
+          </motion.div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* ── Best option hero card ── */
+function BestOptionCard({
+  item,
+  option,
+  reason,
+  onAdd,
+}: {
+  item: SearchItem;
+  option: ProductOption;
+  reason: string;
+  onAdd: () => void;
+}) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="bg-white rounded-2xl p-5 sm:p-6 border border-blue-100 shadow-sm mb-8"
+    >
+      <div className="flex items-center justify-between mb-1">
+        <span className="text-[10px] font-semibold text-[#2563EB] uppercase tracking-widest">Best Option</span>
+        <span className="text-xs text-[#9CA3AF]">{reason}</span>
+      </div>
+      <div className="flex items-center justify-between gap-4 mt-3">
+        <div className="flex items-center gap-3 min-w-0 flex-1">
+          {option.image_url ? (
+            <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-[#F3F4F6] border border-gray-100 p-1.5 flex items-center justify-center shrink-0 overflow-hidden">
+              <img
+                src={option.image_url}
+                alt={item.name}
+                className="max-w-full max-h-full object-contain"
+                loading="lazy"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).style.display = 'none';
+                }}
+              />
+            </div>
+          ) : (
+            <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-[#F3F4F6] border border-gray-100 flex items-center justify-center shrink-0">
+              <span className="text-lg font-bold text-[#9CA3AF]">{(item.normalized_name || item.name).charAt(0).toUpperCase()}</span>
+            </div>
+          )}
+          <div className="min-w-0">
+            <p className="text-lg sm:text-xl font-bold text-[#111827] capitalize truncate">{item.name}</p>
+            <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+              <PlatformBadge platform={option.platform} />
+              <span className="text-xs text-[#6B7280]">{option.quantity || 'Standard'}</span>
+              <span className="text-xs text-[#6B7280] flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#16A34A] live-dot" />
+                {option.eta_minutes} min
+              </span>
+            </div>
+          </div>
+        </div>
+        <div className="text-right shrink-0">
+          {option.price > 0 && (
+            <p className="text-2xl font-bold text-[#111827]">₹{option.price}</p>
+          )}
+          <motion.button
+            whileTap={{ scale: 0.95 }}
+            onClick={onAdd}
+            className="mt-2 px-4 py-2 bg-[#111827] text-white rounded-xl text-sm font-semibold hover:bg-[#1F2937] transition-all duration-200"
+          >
+            Add
+          </motion.button>
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
 function SearchContent() {
   const searchParams = useSearchParams();
   const initialQuery = searchParams.get('q') || '';
 
   const [results, setResults] = useState<SearchItem[]>([]);
   const [suggestions, setSuggestions] = useState<string[]>([]);
-  const [parsedItems, setParsedItems] = useState<{ item: string; quantity?: string }[]>([]);
   const [platforms, setPlatforms] = useState<{ responded: string[]; failed: string[] }>({
     responded: [],
     failed: [],
@@ -41,7 +180,6 @@ function SearchContent() {
       const data = res.data.data;
       setResults(data.items || []);
       setSuggestions(data.suggestions || []);
-      setParsedItems(data.parsed_items || []);
       setPlatforms({
         responded: data.platforms_responded || [],
         failed: data.platforms_failed || [],
@@ -70,149 +208,155 @@ function SearchContent() {
     });
   };
 
-  const allPlatforms = ['blinkit', 'zepto', 'instamart', 'bigbasket', 'amazonfresh'];
+  /* ── Derived data: best option, cheapest list, fastest list ── */
+  const { bestOption, cheapestItems, fastestItems } = useMemo(() => {
+    if (results.length === 0) {
+      return { bestOption: null, cheapestItems: [], fastestItems: [] };
+    }
+
+    // Find the recommended item as "best option"
+    let bestOpt: { item: SearchItem; option: ProductOption; reason: string } | null = null;
+    const cheapest: { item: SearchItem; option: ProductOption }[] = [];
+    const fastest: { item: SearchItem; option: ProductOption }[] = [];
+
+    for (const item of results) {
+      if (!item.options || item.options.length === 0) continue;
+
+      // Best option: first recommended item
+      if (item.recommended && !bestOpt) {
+        const recOption = item.options.find((o) => o.platform === item.recommended!.platform);
+        if (recOption) {
+          bestOpt = { item, option: recOption, reason: item.recommended.reason };
+        }
+      }
+
+      // Cheapest: pick the cheapest option per item
+      const sorted = [...item.options].filter((o) => o.price > 0).sort((a, b) => a.price - b.price);
+      if (sorted.length > 0) {
+        cheapest.push({ item, option: sorted[0] });
+      }
+
+      // Fastest: pick the fastest option per item
+      const bySpeeed = [...item.options].filter((o) => o.eta_minutes > 0).sort((a, b) => a.eta_minutes - b.eta_minutes);
+      if (bySpeeed.length > 0) {
+        fastest.push({ item, option: bySpeeed[0] });
+      }
+    }
+
+    // If no recommended, use overall cheapest as best
+    if (!bestOpt && cheapest.length > 0) {
+      const overall = cheapest.reduce((a, b) => (a.option.price <= b.option.price ? a : b));
+      bestOpt = { ...overall, reason: 'Lowest price' };
+    }
+
+    return { bestOption: bestOpt, cheapestItems: cheapest, fastestItems: fastest };
+  }, [results]);
+
+  const failedCount = platforms.failed.length;
 
   return (
-    <div className="min-h-screen bg-[#F9FAFB]">
+    <div className="w-full min-h-screen bg-[#F9FAFB]">
       <Navbar />
 
-      <main className="max-w-5xl mx-auto px-4 sm:px-6 py-6 sm:py-8 pb-32 sm:pb-8">
-        {/* Search bar */}
-        <div className="mb-5 sm:mb-6">
+      {/* Sticky search area */}
+      <div className="sticky top-14 sm:top-16 z-40 bg-[#F9FAFB]/80 backdrop-blur-xl border-b border-gray-100">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 sm:py-4">
           <SearchBar onSearch={handleSearch} isLoading={isLoading} />
-        </div>
-
-        {/* Pincode / Location */}
-        <div className="mb-4 sm:mb-5">
-          <PincodeBar />
-        </div>
-
-        {/* Mode selector — clean, per design.md button styles */}
-        <div className="flex items-center justify-center gap-2 mb-5 sm:mb-6 overflow-x-auto px-2 pb-1">
-          {(['cheapest', 'balanced', 'fastest'] as const).map((m) => (
-            <motion.button
-              key={m}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => setMode(m)}
-              className={`shrink-0 px-3 sm:px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-200 ${
-                mode === m
-                  ? 'bg-[#111827] text-white shadow-sm'
-                  : 'bg-white text-[#6B7280] border border-gray-100 hover:border-gray-200 hover:bg-[#F9FAFB]'
-              }`}
-            >
-              {m === 'cheapest' && '💰 '}
-              {m === 'balanced' && '⚖️ '}
-              {m === 'fastest' && '⚡ '}
-              {m.charAt(0).toUpperCase() + m.slice(1)}
-            </motion.button>
-          ))}
-        </div>
-
-        {/* Parsed items chips */}
-        <AnimatePresence>
-          {parsedItems.length > 0 && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }}
-              className="flex items-center gap-2 flex-wrap justify-center mb-4"
-            >
-              <span className="text-xs text-[#9CA3AF]">Parsed:</span>
-              {parsedItems.map((p, i) => (
-                <span
-                  key={i}
-                  className="px-2.5 py-1.5 bg-[#F3F4F6] text-[#111827] text-xs rounded-lg capitalize font-medium"
-                >
-                  {p.item}
-                  {p.quantity && ` (${p.quantity})`}
-                </span>
-              ))}
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* Platform status */}
-        {hasSearched && !isLoading && (
-          <div className="flex items-center justify-center gap-2 sm:gap-3 mb-5 sm:mb-6 flex-wrap">
-            {allPlatforms.map((p) => {
-              const responded = platforms.responded.includes(p);
-              const failed = platforms.failed.includes(p);
-              return (
-                <div
-                  key={p}
-                  className={`flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-lg ${
-                    responded
-                      ? 'text-[#16A34A] bg-green-50'
-                      : failed
-                        ? 'text-[#DC2626] bg-red-50'
-                        : 'text-[#9CA3AF] bg-[#F3F4F6]'
+          <div className="flex items-center justify-between mt-3">
+            <PincodeBar />
+            <div className="flex items-center gap-1.5">
+              {(['cheapest', 'balanced', 'fastest'] as const).map((m) => (
+                <button
+                  key={m}
+                  onClick={() => setMode(m)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 ${
+                    mode === m
+                      ? 'bg-[#111827] text-white'
+                      : 'text-[#6B7280] hover:bg-[#E5E7EB]'
                   }`}
                 >
-                  <span className={`w-1.5 h-1.5 rounded-full ${
-                    responded ? 'bg-[#16A34A] live-dot' : failed ? 'bg-[#DC2626]' : 'bg-[#9CA3AF]'
-                  }`} />
-                  {p === 'amazonfresh' ? 'Amazon' : p.charAt(0).toUpperCase() + p.slice(1)}
-                  {failed && <span className="text-[9px] opacity-60">(unavailable)</span>}
-                </div>
-              );
-            })}
+                  {m.charAt(0).toUpperCase() + m.slice(1)}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Content */}
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8 pb-32 sm:pb-8">
+
+        {/* Platform status — compact, only show if there are failures */}
+        {hasSearched && !isLoading && failedCount > 0 && (
+          <div className="flex items-center gap-2 mb-4 text-xs text-[#9CA3AF]">
+            <span>{platforms.responded.length} platform{platforms.responded.length !== 1 ? 's' : ''} responded</span>
+            <span className="text-gray-200">·</span>
+            <span className="text-[#DC2626]">{failedCount} unavailable</span>
           </div>
         )}
 
-        {/* Results */}
+        {/* Loading */}
         {isLoading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {[1, 2, 3, 4].map((i) => (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {[1, 2, 3, 4, 5, 6].map((i) => (
               <SkeletonCard key={i} />
             ))}
           </div>
         ) : results.length > 0 ? (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="grid grid-cols-1 md:grid-cols-2 gap-4"
-          >
-            {results.map((item, i) => (
-              <ProductCard
-                key={`${item.normalized_name}-${i}`}
-                name={item.name}
-                normalizedName={item.normalized_name}
-                options={item.options}
-                recommended={item.recommended}
-                onAddToCart={(option) => handleAddToCart(item, option)}
+          <>
+            {/* LAYER 1: Best option card */}
+            {bestOption && (
+              <BestOptionCard
+                item={bestOption.item}
+                option={bestOption.option}
+                reason={bestOption.reason}
+                onAdd={() => handleAddToCart(bestOption.item, bestOption.option)}
               />
-            ))}
-          </motion.div>
+            )}
+
+            {/* LAYER 2: Horizontal sections */}
+            <HorizontalSection
+              title="Best Price"
+              items={cheapestItems}
+              onAddToCart={handleAddToCart}
+            />
+            <HorizontalSection
+              title="Fastest Delivery"
+              items={fastestItems}
+              onAddToCart={handleAddToCart}
+            />
+
+            {/* LAYER 3: All results grid */}
+            <div className="mt-2">
+              <h3 className="text-xs font-semibold text-[#9CA3AF] uppercase tracking-widest mb-3 px-1">
+                All Results
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {results.map((item, i) => (
+                  <ProductCard
+                    key={`${item.normalized_name}-${i}`}
+                    name={item.name}
+                    normalizedName={item.normalized_name}
+                    options={item.options}
+                    recommended={item.recommended}
+                    onAddToCart={(option) => handleAddToCart(item, option)}
+                  />
+                ))}
+              </div>
+            </div>
+          </>
         ) : hasSearched ? (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="text-center py-12 sm:py-16"
-          >
-            <div className="w-16 h-16 sm:w-20 sm:h-20 mx-auto bg-[#F3F4F6] rounded-2xl flex items-center justify-center text-3xl sm:text-4xl mb-4 sm:mb-6">
-              🔍
-            </div>
-            <p className="text-[#111827] text-base sm:text-lg font-semibold">No results found</p>
-            <p className="text-[#9CA3AF] text-sm mt-2 max-w-xs mx-auto">
-              Platforms may be temporarily unavailable. Try a different search or check back soon.
-            </p>
-          </motion.div>
+          <div className="text-center py-16">
+            <p className="text-[#111827] text-base font-semibold">No results found</p>
+            <p className="text-[#9CA3AF] text-sm mt-2">Try a different search term.</p>
+          </div>
         ) : (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="text-center py-12 sm:py-16"
-          >
-            <div className="w-16 h-16 sm:w-20 sm:h-20 mx-auto bg-[#F3F4F6] rounded-2xl flex items-center justify-center text-3xl sm:text-4xl mb-4 sm:mb-6">
-              🛒
-            </div>
-            <p className="text-[#111827] text-base sm:text-lg font-semibold">
-              Search for groceries above
-            </p>
+          <div className="text-center py-16">
+            <p className="text-[#111827] text-base font-semibold">Search for groceries above</p>
             <p className="text-[#9CA3AF] text-sm mt-2">
-              Try &quot;milk and bread&quot; or &quot;pasta dinner&quot;
+              e.g. &quot;milk and bread&quot; or &quot;pasta dinner&quot;
             </p>
-          </motion.div>
+          </div>
         )}
 
         {/* Suggestions */}
@@ -222,31 +366,29 @@ function SearchContent() {
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0 }}
-              className="mt-6 soft-card p-5 border border-gray-100"
+              className="mt-8 bg-white rounded-2xl p-5 border border-gray-100 shadow-sm"
             >
               <h3 className="text-xs font-semibold text-[#9CA3AF] uppercase tracking-widest mb-3">
-                🧠 You might also need
+                Related
               </h3>
               <div className="flex flex-wrap gap-2">
                 {suggestions.map((s) => (
-                  <motion.button
+                  <button
                     key={s}
-                    whileTap={{ scale: 0.95 }}
                     onClick={() => handleSearch(s)}
                     className="px-3 py-2 bg-[#F3F4F6] hover:bg-[#E5E7EB] text-[#111827] rounded-lg text-sm font-medium transition-all duration-200 capitalize"
                   >
                     + {s}
-                  </motion.button>
+                  </button>
                 ))}
               </div>
             </motion.div>
           )}
         </AnimatePresence>
 
-        {/* Legal Disclaimer */}
         <div className="mt-10 text-center">
           <p className="text-[10px] text-[#9CA3AF] max-w-lg mx-auto">
-            Prices sourced from publicly available data. OmniCart is not affiliated with any listed platform.
+            Prices sourced from publicly available data. Not affiliated with any listed platform.
           </p>
         </div>
       </main>
