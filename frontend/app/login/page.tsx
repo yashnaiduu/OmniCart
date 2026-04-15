@@ -40,33 +40,28 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-blue-50/60 via-white to-white flex items-center justify-center px-4">
+    <div className="min-h-screen bg-[#F9FAFB] flex items-center justify-center px-4">
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
+        initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4 }}
+        transition={{ duration: 0.3 }}
         className="w-full max-w-md"
       >
-        {/* Logo */}
+        {/* Logo — clean, no gradient */}
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold">
-            <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-              OmniCart
-            </span>{' '}
-            <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-medium align-middle">
-              AI
-            </span>
+          <h1 className="text-3xl font-bold text-[#111827]">
+            OmniCart
           </h1>
-          <p className="text-gray-500 mt-2">
+          <p className="text-[#6B7280] mt-2 text-sm font-medium">
             {isSignup ? 'Create your account' : 'Welcome back'}
           </p>
         </div>
 
-        {/* Form */}
+        {/* Form card */}
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8">
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">
+              <label className="block text-sm font-medium text-[#111827] mb-1.5">
                 Email
               </label>
               <input
@@ -75,13 +70,13 @@ export default function LoginPage() {
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@example.com"
                 required
-                className="w-full px-4 py-3 bg-gray-50 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+                className="w-full px-4 py-3 bg-[#F3F4F6] rounded-xl text-sm text-[#111827] placeholder-[#9CA3AF] focus:outline-none focus:ring-2 focus:ring-[#2563EB] transition-all duration-200"
                 id="email-input"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">
+              <label className="block text-sm font-medium text-[#111827] mb-1.5">
                 Password
               </label>
               <input
@@ -91,7 +86,7 @@ export default function LoginPage() {
                 placeholder="••••••••"
                 required
                 minLength={6}
-                className="w-full px-4 py-3 bg-gray-50 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+                className="w-full px-4 py-3 bg-[#F3F4F6] rounded-xl text-sm text-[#111827] placeholder-[#9CA3AF] focus:outline-none focus:ring-2 focus:ring-[#2563EB] transition-all duration-200"
                 id="password-input"
               />
             </div>
@@ -100,7 +95,7 @@ export default function LoginPage() {
               <motion.p
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                className="text-sm text-red-500 bg-red-50 px-4 py-2 rounded-lg"
+                className="text-sm text-[#DC2626] bg-red-50 px-4 py-2 rounded-lg"
               >
                 {error}
               </motion.p>
@@ -110,7 +105,7 @@ export default function LoginPage() {
               type="submit"
               whileTap={{ scale: 0.98 }}
               disabled={isLoading}
-              className="w-full py-3 bg-blue-500 text-white rounded-xl text-sm font-semibold hover:bg-blue-600 disabled:opacity-50 transition-colors shadow-sm"
+              className="w-full py-3 bg-[#111827] text-white rounded-xl text-sm font-semibold hover:bg-[#1F2937] disabled:opacity-50 transition-all duration-200 shadow-sm active:scale-95"
               id="submit-button"
             >
               {isLoading ? (
@@ -132,7 +127,7 @@ export default function LoginPage() {
                 setIsSignup(!isSignup);
                 setError('');
               }}
-              className="text-sm text-gray-500 hover:text-gray-700 transition-colors"
+              className="text-sm text-[#6B7280] hover:text-[#111827] transition-all duration-200"
             >
               {isSignup
                 ? 'Already have an account? Sign in'

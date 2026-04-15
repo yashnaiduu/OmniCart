@@ -4,60 +4,67 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { useAuthStore, useCartStore } from '@/store';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { CartDrawer } from './CartDrawer';
 
 const navItems = [
   { href: '/', label: 'Home', icon: '🏠' },
   { href: '/search', label: 'Search', icon: '🔍' },
   { href: '/collections', label: 'Lists', icon: '📋' },
+  { href: '/dashboard', label: 'Savings', icon: '📊' },
+  { href: '/profile', label: 'Profile', icon: '⚙️' },
 ];
 
 export function Navbar() {
   const pathname = usePathname();
   const { isLoggedIn, email, logout, hydrate } = useAuthStore();
   const cartItems = useCartStore((s) => s.items);
+  const [cartOpen, setCartOpen] = useState(false);
 
   useEffect(() => {
     hydrate();
   }, [hydrate]);
 
   return (
-    <nav className="sticky top-0 z-50 glass border-b border-white/20">
-      <div className="max-w-5xl mx-auto px-4 sm:px-6">
-        <div className="flex items-center justify-between h-16">
-          {/* Logo */}
-          <Link href="/" className="flex items-center gap-2">
-            <span className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+    <>
+    <CartDrawer isOpen={cartOpen} onClose={() => setCartOpen(false)} />
+    <nav className="sticky top-0 z-50 bg-white/80 backdrop-blur-xl border-b border-[#F3F4F6] safe-top">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6">
+        <div className="flex items-center justify-between h-14 sm:h-16">
+          {/* Logo — clean, no gradients */}
+          <Link href="/" className="flex items-center gap-2.5 outline-none group">
+            <div className="w-8 h-8 rounded-xl bg-[#111827] flex items-center justify-center text-white text-sm font-bold">
+              O
+            </div>
+            <span className="text-lg font-bold tracking-tight text-[#111827]">
               OmniCart
-            </span>
-            <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-medium">
-              AI
             </span>
           </Link>
 
-          {/* Nav links */}
-          <div className="hidden sm:flex items-center gap-1">
+          {/* Desktop nav — pill style */}
+          <div className="hidden sm:flex items-center gap-1 p-1 bg-[#F3F4F6] rounded-xl">
             {navItems.map((item) => {
               const isActive = pathname === item.href;
               return (
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`relative px-4 py-2 rounded-xl text-sm font-medium transition-colors ${
+                  className={`relative px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200 outline-none ${
                     isActive
-                      ? 'text-blue-700'
-                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100/50'
+                      ? 'text-white'
+                      : 'text-[#6B7280] hover:text-[#111827]'
                   }`}
                 >
                   {isActive && (
                     <motion.div
-                      layoutId="nav-indicator"
-                      className="absolute inset-0 bg-blue-50 rounded-xl"
-                      transition={{ type: 'spring', bounce: 0.2, duration: 0.4 }}
+                      layoutId="nav-pill"
+                      className="absolute inset-0 bg-[#111827] rounded-xl"
+                      initial={false}
+                      transition={{ type: 'spring' as const, stiffness: 400, damping: 30 }}
                     />
                   )}
-                  <span className="relative flex items-center gap-1.5">
-                    {item.icon} {item.label}
+                  <span className="relative flex items-center gap-1.5 z-10">
+                    <span className="opacity-80">{item.icon}</span> {item.label}
                   </span>
                 </Link>
               );
@@ -65,27 +72,31 @@ export function Navbar() {
           </div>
 
           {/* Right side */}
-          <div className="flex items-center gap-3">
-            {/* Cart badge */}
+          <div className="flex items-center gap-2 sm:gap-3">
             {cartItems.length > 0 && (
-              <motion.div
+              <motion.button
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-700 rounded-full text-sm font-medium"
+                onClick={() => setCartOpen(true)}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-[#111827] text-white rounded-full text-xs font-bold shadow-sm cursor-pointer transition-all duration-200 hover:bg-[#1F2937] active:scale-95"
               >
                 🛒 {cartItems.length}
-              </motion.div>
+              </motion.button>
             )}
 
-            {/* Auth */}
             {isLoggedIn ? (
               <div className="flex items-center gap-2">
-                <span className="text-sm text-gray-600 hidden sm:inline">
-                  {email?.split('@')[0]}
-                </span>
+                <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-[#F3F4F6] rounded-full">
+                  <div className="w-6 h-6 rounded-full bg-[#111827] text-white flex items-center justify-center text-[10px] font-bold">
+                    {email?.charAt(0).toUpperCase()}
+                  </div>
+                  <span className="text-sm font-semibold text-[#111827]">
+                    {email?.split('@')[0]}
+                  </span>
+                </div>
                 <button
                   onClick={logout}
-                  className="text-sm text-gray-500 hover:text-gray-700 px-3 py-1.5 rounded-lg hover:bg-gray-100 transition-colors"
+                  className="text-sm font-semibold text-[#9CA3AF] hover:text-[#DC2626] px-3 py-2 rounded-xl hover:bg-red-50 transition-all duration-200"
                 >
                   Logout
                 </button>
@@ -93,7 +104,7 @@ export function Navbar() {
             ) : (
               <Link
                 href="/login"
-                className="text-sm font-medium text-white bg-blue-500 hover:bg-blue-600 px-4 py-2 rounded-xl transition-colors"
+                className="text-sm font-bold text-white bg-[#111827] hover:bg-[#1F2937] px-5 py-2.5 rounded-xl shadow-sm transition-all duration-200 active:scale-95"
               >
                 Sign In
               </Link>
@@ -103,7 +114,7 @@ export function Navbar() {
       </div>
 
       {/* Mobile bottom nav */}
-      <div className="sm:hidden fixed bottom-0 left-0 right-0 glass border-t border-white/20 z-50">
+      <div className="sm:hidden fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-xl border-t border-[#F3F4F6] z-50 safe-bottom">
         <div className="flex items-center justify-around py-2 px-4">
           {navItems.map((item) => {
             const isActive = pathname === item.href;
@@ -111,11 +122,11 @@ export function Navbar() {
               <Link
                 key={item.href}
                 href={item.href}
-                className={`flex flex-col items-center gap-0.5 px-4 py-1.5 rounded-xl text-xs font-medium transition-colors ${
-                  isActive ? 'text-blue-600' : 'text-gray-500'
+                className={`flex flex-col items-center gap-0.5 px-5 py-2 rounded-2xl text-[11px] font-bold transition-all duration-200 ${
+                  isActive ? 'text-[#2563EB] bg-blue-50' : 'text-[#9CA3AF]'
                 }`}
               >
-                <span className="text-lg">{item.icon}</span>
+                <span className={`text-xl ${isActive ? 'scale-110' : ''} transition-transform duration-200`}>{item.icon}</span>
                 {item.label}
               </Link>
             );
@@ -123,5 +134,6 @@ export function Navbar() {
         </div>
       </div>
     </nav>
+    </>
   );
 }

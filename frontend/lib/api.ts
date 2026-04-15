@@ -9,7 +9,7 @@ const api = axios.create({
   },
 });
 
-// Attach JWT token to every request
+// Attach JWT token + X-Request-ID to every request
 api.interceptors.request.use((config) => {
   if (typeof window !== 'undefined') {
     const token = localStorage.getItem('access_token');
@@ -17,6 +17,9 @@ api.interceptors.request.use((config) => {
       config.headers.Authorization = `Bearer ${token}`;
     }
   }
+  // Enterprise: unique request ID per 06_API_CONTRACTS.md §2.2
+  config.headers['X-Request-ID'] = `web-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  config.headers['X-Client-Version'] = '1.0.0';
   return config;
 });
 
@@ -154,6 +157,32 @@ export interface FeedResponse {
 
 export const feedApi = {
   getFeed: () => api.get<{ data: FeedResponse }>('/feed'),
+};
+
+// ── Refill ────────────────────────────
+
+export const refillApi = {
+  refill: (collectionId: string, pincode?: string, mode?: string) =>
+    api.post('/refill', { collection_id: collectionId, pincode, mode }),
+};
+
+// ── Budget ────────────────────────────
+
+export const budgetApi = {
+  set: (monthlyLimit: number) =>
+    api.post('/budget', { monthly_limit: monthlyLimit }),
+  get: () => api.get('/budget'),
+  check: (cartTotal: number) =>
+    api.post('/budget/check', { cart_total: cartTotal }),
+};
+
+// ── Alerts ────────────────────────────
+
+export const alertsApi = {
+  create: (item: string, platform: string, targetPrice: number) =>
+    api.post('/alerts', { item, platform, target_price: targetPrice }),
+  getAll: () => api.get('/alerts'),
+  delete: (id: string) => api.delete(`/alerts/${id}`),
 };
 
 export default api;

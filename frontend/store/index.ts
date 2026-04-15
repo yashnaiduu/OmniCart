@@ -95,11 +95,23 @@ interface PreferencesStore {
   mode: 'cheapest' | 'fastest' | 'balanced';
   setPincode: (pincode: string) => void;
   setMode: (mode: 'cheapest' | 'fastest' | 'balanced') => void;
+  hydrate: () => void;
 }
 
 export const usePreferencesStore = create<PreferencesStore>((set) => ({
   pincode: '560067',
   mode: 'balanced',
-  setPincode: (pincode) => set({ pincode }),
+  setPincode: (pincode) => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('user_pincode', pincode);
+    }
+    set({ pincode });
+  },
   setMode: (mode) => set({ mode }),
+  hydrate: () => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('user_pincode');
+      if (saved) set({ pincode: saved });
+    }
+  },
 }));

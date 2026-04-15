@@ -1,90 +1,105 @@
 @import "tailwindcss";
 
 @theme {
-  --color-primary: #3B82F6;
-  --color-primary-dark: #2563EB;
-  --color-primary-light: #60A5FA;
-  --color-success: #10B981;
-  --color-success-light: #34D399;
-  --color-error: #EF4444;
-  --color-warning: #F59E0B;
-  --color-surface: #FFFFFF;
-  --color-surface-secondary: #F9FAFB;
-  --color-surface-tertiary: #F3F4F6;
-  --color-text-primary: #111827;
-  --color-text-secondary: #6B7280;
-  --color-text-tertiary: #9CA3AF;
+  /* ── STRICT APPLE DESIGN TOKENS (per design.md) ── */
+
+  /* Backgrounds */
+  --color-bg-primary: #F9FAFB;         /* Very light gray — NOT pure white */
+  --color-bg-card: #FFFFFF;            /* Cards, sections */
+  --color-bg-elevated: #F3F4F6;        /* Hover / active surfaces */
+
+  /* Text */
+  --color-text-primary: #111827;        /* Deep gray — NOT pure black */
+  --color-text-secondary: #6B7280;      /* Subtle gray */
+  --color-text-muted: #9CA3AF;          /* Low emphasis */
+
+  /* Accent */
+  --color-accent: #2563EB;              /* Apple-like blue */
+  --color-accent-hover: #1D4ED8;        /* Darker blue on hover */
+
+  /* Semantic */
+  --color-success: #16A34A;             /* ADD buttons, positive actions */
+  --color-error: #DC2626;               /* Errors — use sparingly */
+
+  /* Borders */
   --color-border: #E5E7EB;
   --color-border-light: #F3F4F6;
 
-  /* Platform brand colors */
-  --color-blinkit: #F8CB46;
-  --color-zepto: #8B5CF6;
-  --color-instamart: #F97316;
-  --color-bigbasket: #84CC16;
+  /* Platform text colors — muted, used in small labels ONLY */
+  --color-platform-blinkit: #92400E;
+  --color-platform-zepto: #6D28D9;
+  --color-platform-instamart: #C2410C;
+  --color-platform-bigbasket: #4D7C0F;
+  --color-platform-amazon: #0369A1;
 
+  /* Typography */
   --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
 }
 
-/* Base styles */
+/* ── BASE ── */
 html {
   scroll-behavior: smooth;
+  -webkit-tap-highlight-color: transparent;
 }
 
 body {
   font-family: var(--font-sans);
-  background: var(--color-surface-secondary);
+  background: var(--color-bg-primary);
   color: var(--color-text-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overscroll-behavior-y: none;
 }
 
-/* Glassmorphism utility */
-.glass {
-  background: rgba(255, 255, 255, 0.75);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+/* ── CARDS — per design.md: bg-white shadow-sm → hover:shadow-md ── */
+.soft-card {
+  background: var(--color-bg-card);
+  border-radius: 16px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 1px 3px rgba(0, 0, 0, 0.03);
+  transition: box-shadow 0.2s ease-in-out;
 }
 
-.glass-dark {
-  background: rgba(17, 24, 39, 0.75);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+.soft-card:hover {
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.04);
 }
 
-/* Skeleton loader animation */
+/* ── SKELETON LOADER ── */
 @keyframes shimmer {
   0% { background-position: -200% 0; }
   100% { background-position: 200% 0; }
 }
 
 .skeleton {
-  background: linear-gradient(
-    90deg,
-    #F3F4F6 25%,
-    #E5E7EB 50%,
-    #F3F4F6 75%
-  );
+  background: linear-gradient(90deg, #F3F4F6 25%, #E5E7EB 50%, #F3F4F6 75%);
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite ease-in-out;
-  border-radius: 8px;
+  border-radius: 12px;
 }
 
-/* Custom scrollbar */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+/* ── SCROLLBAR — subtle ── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #E5E7EB; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #D1D5DB; }
+
+/* ── MOBILE TOUCH TARGETS ── */
+@media (max-width: 640px) {
+  button, a, [role="button"] {
+    min-height: 44px;
+    min-width: 44px;
+  }
 }
 
-::-webkit-scrollbar-track {
-  background: transparent;
+/* ── SAFE AREAS ── */
+.safe-bottom { padding-bottom: env(safe-area-inset-bottom, 0px); }
+.safe-top { padding-top: env(safe-area-inset-top, 0px); }
+
+/* ── LIVE PULSE ── */
+@keyframes live-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(0.85); }
 }
 
-::-webkit-scrollbar-thumb {
-  background: #D1D5DB;
-  border-radius: 3px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: #9CA3AF;
+.live-dot {
+  animation: live-pulse 2s ease-in-out infinite;
 }

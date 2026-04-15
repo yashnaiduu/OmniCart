@@ -1,95 +1,80 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Connector, Product } from './connector.interface';
+import { scrapePage } from './browser-pool';
 
 /**
- * BigBasket Mock Connector
- * Per 08_CONNECTORS_SPEC.md
+ * BigBasket Connector — Headless Chrome
+ * Verified: Products render as a[href*="/pd/"] links with h3 product names
  */
 @Injectable()
 export class BigBasketConnector implements Connector {
   readonly platformName = 'bigbasket';
   private readonly logger = new Logger(BigBasketConnector.name);
 
-  private readonly mockCatalog: Record<string, Product[]> = {
-    milk: [
-      {
-        name: 'Amul Taaza Toned Milk',
-        normalized_name: 'milk',
-        price: 27,
-        currency: 'INR',
-        quantity: '500ml',
-        platform: 'bigbasket',
-        eta_minutes: 30,
-        in_stock: true,
-      },
-    ],
-    bread: [
-      {
-        name: 'BB Royal Multigrain Bread',
-        normalized_name: 'bread',
-        price: 42,
-        currency: 'INR',
-        quantity: '400g',
-        platform: 'bigbasket',
-        eta_minutes: 30,
-        in_stock: true,
-      },
-    ],
-    rice: [
-      {
-        name: 'BB Royal Basmati Rice',
-        normalized_name: 'rice',
-        price: 175,
-        currency: 'INR',
-        quantity: '1kg',
-        platform: 'bigbasket',
-        eta_minutes: 35,
-        in_stock: true,
-      },
-    ],
-    pasta: [
-      {
-        name: 'Borges Penne Pasta',
-        normalized_name: 'pasta',
-        price: 139,
-        currency: 'INR',
-        quantity: '500g',
-        platform: 'bigbasket',
-        eta_minutes: 30,
-        in_stock: true,
-      },
-    ],
-    eggs: [
-      {
-        name: 'Fresho Eggs (Pack of 6)',
-        normalized_name: 'eggs',
-        price: 59,
-        currency: 'INR',
-        quantity: '6 pcs',
-        platform: 'bigbasket',
-        eta_minutes: 30,
-        in_stock: true,
-      },
-    ],
-  };
-
   async search(query: string, _lat: number, _lng: number): Promise<Product[]> {
-    this.logger.debug(`[bigbasket] Searching: "${query}"`);
-    await this.delay(50 + Math.random() * 70);
+    this.logger.debug(`[bigbasket] Scraping: "${query}"`);
 
-    const normalizedQuery = query.toLowerCase().trim();
-    const results: Product[] = [];
+    const url = `https://www.bigbasket.com/ps/?q=${encodeURIComponent(query)}&nc=as`;
 
-    for (const [key, products] of Object.entries(this.mockCatalog)) {
-      if (normalizedQuery.includes(key) || key.includes(normalizedQuery)) {
-        results.push(...products);
-      }
-    }
+    const products = await scrapePage<Product[]>(
+      url,
+      async (page) => {
+        // Wait extra for lazy-loaded product grid
+        await new Promise((r) => setTimeout(r, 3000));
 
-    return results;
-  }
+        return page.evaluate((q: string) => {
+          const items: any[] = [];
+          const seen = new Set<string>();
 
-  private delay(ms: number): Promise<void> {
-    return new Promise((resolve) => setTimeout(resolve, ms));
+          // BigBasket product links contain /pd/ in href
+          const links = document.querySelectorAll('a[href*="/pd/"]');
+
+          links.forEach((link) => {
+            // Walk up to find the product card container
+            const card = link.closest('li') || link.closest('div') || link;
+
+            const nameEl = card.querySelector('h3') || link.querySelector('h3');
+            const name = nameEl?.textContent?.trim();
+            if (!name || seen.has(name)) return;
+            seen.add(name);
+
+            // Find price — look for ₹ symbol in nearby text
+            const allSpans = card.querySelectorAll('span');
+            let price = 0;
+            let weight = '';
+            for (const span of allSpans) {
+              const text = span.textContent?.trim() || '';
+              if (text.startsWith('₹') || /^\d+$/.test(text)) {
+                const parsed = parseFloat(text.replace(/[^\d.]/g, ''));
+                if (parsed > 0 && price === 0) price = parsed;
+              }
+              // Weight patterns
+              if (/\d+\s*(g|kg|ml|l|pack|pcs|pouch)/i.test(text) && !weight) {
+                weight = text;
+              }
+            }
+
+            items.push({
+              name,
+              normalized_name: q.toLowerCase(),
+              price,
+              currency: 'INR',
+              quantity: weight,
+              platform: 'bigbasket',
+              eta_minutes: 30,
+              in_stock: true,
+              product_url: 'https://www.bigbasket.com' + (link as HTMLAnchorElement).getAttribute('href'),
+            });
+          });
+
+          return items.slice(0, 15);
+        }, query);
+      },
+      5000,
+    );
+
+    const result = products || [];
+    this.logger.log(`[bigbasket] Scraped ${result.length} products for "${query}"`);
+    return result;
   }
 }

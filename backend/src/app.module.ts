@@ -11,6 +11,9 @@ import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 import { SearchModule } from './search/search.module';
 import { CollectionsModule } from './collections/collections.module';
 import { FeedModule } from './feed/feed.module';
+import { RefillModule } from './refill/refill.module';
+import { BudgetModule } from './budget/budget.module';
+import { AlertsModule } from './alerts/alerts.module';
 import { RequestIdMiddleware } from './common/middleware/request-id.middleware';
 
 import { AppController } from './app.controller';
@@ -28,6 +31,9 @@ import { AppService } from './app.service';
  * - SearchModule (core search + aggregation + AI engine + connectors)
  * - CollectionsModule (CRUD lists)
  * - FeedModule (home feed)
+ * - RefillModule (one-tap reorder)
+ * - BudgetModule (budget guardian)
+ * - AlertsModule (price drop alerts)
  *
  * Global guards:
  * - JwtAuthGuard (all routes require JWT unless @Public())
@@ -60,6 +66,9 @@ import { AppService } from './app.service';
     SearchModule,
     CollectionsModule,
     FeedModule,
+    RefillModule,
+    BudgetModule,
+    AlertsModule,
   ],
   controllers: [AppController],
   providers: [

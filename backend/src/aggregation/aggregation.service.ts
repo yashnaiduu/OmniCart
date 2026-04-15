@@ -48,7 +48,7 @@ export class AggregationService {
         (query: string, lat: number, lng: number) =>
           connector.search(query, lat, lng),
         {
-          timeout: 300, // 300ms per connector (08_CONNECTORS_SPEC.md §6)
+          timeout: 20000, // 20s per connector — headless Chrome scraping needs more time
           errorThresholdPercentage: 50, // Open circuit at 50% failure rate
           resetTimeout: 60000, // Try again after 1 minute
           volumeThreshold: 5,
@@ -233,14 +233,42 @@ export class AggregationService {
    */
   private pincodeToCoords(pincode: string): { lat: number; lng: number } {
     const pincodeMap: Record<string, { lat: number; lng: number }> = {
+      // Bangalore
       '560067': { lat: 12.97, lng: 77.75 },
       '560001': { lat: 12.98, lng: 77.58 },
+      '560034': { lat: 12.93, lng: 77.63 },
+      '560078': { lat: 12.91, lng: 77.65 },
+      // Mumbai
       '400001': { lat: 18.93, lng: 72.83 },
+      '400050': { lat: 19.06, lng: 72.83 },
+      '400076': { lat: 19.11, lng: 72.87 },
+      // Delhi / NCR
       '110001': { lat: 28.64, lng: 77.22 },
+      '110020': { lat: 28.56, lng: 77.23 },
+      '110092': { lat: 28.67, lng: 77.28 },
+      '201301': { lat: 28.57, lng: 77.32 }, // Noida
+      '122001': { lat: 28.46, lng: 77.03 }, // Gurgaon
+      // Hyderabad
       '500001': { lat: 17.38, lng: 78.47 },
+      '500034': { lat: 17.44, lng: 78.50 },
+      // Chennai
       '600001': { lat: 13.06, lng: 80.27 },
+      '600028': { lat: 13.00, lng: 80.27 },
+      // Kolkata
+      '700001': { lat: 22.57, lng: 88.35 },
+      // Pune
+      '411001': { lat: 18.52, lng: 73.86 },
+      '411014': { lat: 18.53, lng: 73.83 },
+      // Ahmedabad
+      '380001': { lat: 23.02, lng: 72.58 },
+      // Jaipur
+      '302001': { lat: 26.92, lng: 75.79 },
+      // Lucknow
+      '226001': { lat: 26.85, lng: 80.95 },
+      // Chandigarh
+      '160017': { lat: 30.74, lng: 76.78 },
     };
 
-    return pincodeMap[pincode] || { lat: 12.97, lng: 77.75 }; // Default to Bangalore
+    return pincodeMap[pincode] || { lat: 12.97, lng: 77.75 }; // Default: Bangalore
   }
 }

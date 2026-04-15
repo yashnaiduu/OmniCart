@@ -1,170 +1,102 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Connector, Product } from './connector.interface';
+import { scrapePage } from './browser-pool';
 
 /**
- * Blinkit Mock Connector
- * MVP implementation using mock data
- * Will be replaced with reverse-engineered API calls in growth phase
- * Per 08_CONNECTORS_SPEC.md §5
+ * Blinkit Connector — Headless Chrome
+ * Verified: In headless mode, products render as flat text.
+ * Pattern: {discount}% OFF\n{ETA} MINS\n{name}\n{qty}\n₹{price}\nADD
  */
 @Injectable()
 export class BlinkitConnector implements Connector {
   readonly platformName = 'blinkit';
   private readonly logger = new Logger(BlinkitConnector.name);
 
-  private readonly mockCatalog: Record<string, Product[]> = {
-    milk: [
-      {
-        name: 'Amul Taaza Toned Milk',
-        normalized_name: 'milk',
-        price: 29,
-        currency: 'INR',
-        quantity: '500ml',
-        platform: 'blinkit',
-        eta_minutes: 10,
-        in_stock: true,
-        image_url: 'https://cdn.blinkit.com/mock/milk-amul.jpg',
-      },
-      {
-        name: 'Mother Dairy Full Cream Milk',
-        normalized_name: 'milk',
-        price: 34,
-        currency: 'INR',
-        quantity: '500ml',
-        platform: 'blinkit',
-        eta_minutes: 10,
-        in_stock: true,
-      },
-    ],
-    bread: [
-      {
-        name: 'Harvest Gold White Bread',
-        normalized_name: 'bread',
-        price: 40,
-        currency: 'INR',
-        quantity: '400g',
-        platform: 'blinkit',
-        eta_minutes: 10,
-        in_stock: true,
-      },
-    ],
-    rice: [
-      {
-        name: 'India Gate Basmati Rice',
-        normalized_name: 'rice',
-        price: 199,
-        currency: 'INR',
-        quantity: '1kg',
-        platform: 'blinkit',
-        eta_minutes: 12,
-        in_stock: true,
-      },
-    ],
-    pasta: [
-      {
-        name: 'Barilla Penne Pasta',
-        normalized_name: 'pasta',
-        price: 149,
-        currency: 'INR',
-        quantity: '500g',
-        platform: 'blinkit',
-        eta_minutes: 10,
-        in_stock: true,
-      },
-    ],
-    eggs: [
-      {
-        name: 'Farm Fresh Eggs',
-        normalized_name: 'eggs',
-        price: 79,
-        currency: 'INR',
-        quantity: '6 pcs',
-        platform: 'blinkit',
-        eta_minutes: 10,
-        in_stock: true,
-      },
-    ],
-    butter: [
-      {
-        name: 'Amul Butter',
-        normalized_name: 'butter',
-        price: 57,
-        currency: 'INR',
-        quantity: '100g',
-        platform: 'blinkit',
-        eta_minutes: 10,
-        in_stock: true,
-      },
-    ],
-    cheese: [
-      {
-        name: 'Amul Cheese Slices',
-        normalized_name: 'cheese',
-        price: 115,
-        currency: 'INR',
-        quantity: '200g',
-        platform: 'blinkit',
-        eta_minutes: 10,
-        in_stock: true,
-      },
-    ],
-    sauce: [
-      {
-        name: 'Kissan Fresh Tomato Ketchup',
-        normalized_name: 'sauce',
-        price: 99,
-        currency: 'INR',
-        quantity: '500g',
-        platform: 'blinkit',
-        eta_minutes: 10,
-        in_stock: true,
-      },
-    ],
-    sugar: [
-      {
-        name: 'Trust Classic Sugar',
-        normalized_name: 'sugar',
-        price: 45,
-        currency: 'INR',
-        quantity: '1kg',
-        platform: 'blinkit',
-        eta_minutes: 12,
-        in_stock: true,
-      },
-    ],
-    oil: [
-      {
-        name: 'Fortune Sunflower Oil',
-        normalized_name: 'oil',
-        price: 155,
-        currency: 'INR',
-        quantity: '1L',
-        platform: 'blinkit',
-        eta_minutes: 12,
-        in_stock: true,
-      },
-    ],
-  };
-
   async search(query: string, _lat: number, _lng: number): Promise<Product[]> {
-    this.logger.debug(`[blinkit] Searching: "${query}"`);
+    this.logger.debug(`[blinkit] Scraping: "${query}"`);
 
-    // Simulate network latency: 30-80ms
-    await this.delay(30 + Math.random() * 50);
+    const url = `https://blinkit.com/s/?q=${encodeURIComponent(query)}`;
 
-    const normalizedQuery = query.toLowerCase().trim();
-    const results: Product[] = [];
+    const products = await scrapePage<Product[]>(
+      url,
+      async (page) => {
+        // Dismiss location modal
+        try { await page.keyboard.press('Escape'); } catch { /* ok */ }
+        await new Promise((r) => setTimeout(r, 3000));
 
-    for (const [key, products] of Object.entries(this.mockCatalog)) {
-      if (normalizedQuery.includes(key) || key.includes(normalizedQuery)) {
-        results.push(...products);
-      }
-    }
+        return page.evaluate((q: string) => {
+          const items: any[] = [];
+          const bodyText = document.body?.innerText || '';
+          const lines = bodyText.split('\n').map((l: string) => l.trim()).filter((l: string) => l.length > 0);
 
-    return results;
-  }
+          // Find the "Showing results" marker to know where products start
+          let startIdx = 0;
+          for (let i = 0; i < lines.length; i++) {
+            if (lines[i].includes('Showing results')) {
+              startIdx = i + 1;
+              break;
+            }
+          }
 
-  private delay(ms: number): Promise<void> {
-    return new Promise((resolve) => setTimeout(resolve, ms));
+          // Parse pattern: {optional discount}% OFF → {ETA} MINS → {name} → {qty} → ₹{price} → ADD
+          for (let i = startIdx; i < lines.length; i++) {
+            // Look for "ADD" buttons as product delimiters
+            if (lines[i] === 'ADD') {
+              // Walk backwards to find the product info
+              let name = '';
+              let price = 0;
+              let quantity = '';
+              let eta = 16;
+
+              // Scan backwards from ADD
+              for (let j = i - 1; j >= Math.max(startIdx, i - 6); j--) {
+                const line = lines[j];
+
+                // Price line: ₹XX
+                if (line.startsWith('₹') && price === 0) {
+                  price = parseFloat(line.replace(/[^\d.]/g, '')) || 0;
+                }
+                // Quantity line: patterns like "500 ml", "1 ltr", "1 kg"
+                else if (/^\d+\s*(ml|g|kg|ltr|l|pack|pcs|pouch)/i.test(line) && !quantity) {
+                  quantity = line;
+                }
+                // ETA line: "16 MINS"
+                else if (/^\d+\s*MINS?$/i.test(line)) {
+                  eta = parseInt(line) || 16;
+                }
+                // Discount: "13% OFF"
+                else if (/^\d+%\s*OFF$/i.test(line)) {
+                  // skip
+                }
+                // Name: anything else that's long enough
+                else if (line.length > 3 && !line.startsWith('₹') && !name) {
+                  name = line;
+                }
+              }
+
+              if (name && name.length > 3) {
+                items.push({
+                  name,
+                  normalized_name: q.toLowerCase(),
+                  price,
+                  currency: 'INR',
+                  quantity,
+                  platform: 'blinkit',
+                  eta_minutes: eta,
+                  in_stock: true,
+                });
+              }
+            }
+          }
+
+          return items.slice(0, 15);
+        }, query);
+      },
+      5000,
+    );
+
+    const result = products || [];
+    this.logger.log(`[blinkit] Scraped ${result.length} products for "${query}"`);
+    return result;
   }
 }

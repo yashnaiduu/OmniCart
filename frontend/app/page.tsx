@@ -14,13 +14,13 @@ const container = {
   hidden: { opacity: 0 },
   show: {
     opacity: 1,
-    transition: { staggerChildren: 0.08 },
+    transition: { staggerChildren: 0.08, delayChildren: 0.1 },
   },
 };
 
 const item = {
   hidden: { opacity: 0, y: 12 },
-  show: { opacity: 1, y: 0 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.3, ease: 'easeOut' } },
 };
 
 export default function HomePage() {
@@ -40,87 +40,88 @@ export default function HomePage() {
   });
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-blue-50/60 via-white to-white">
+    <div className="min-h-screen bg-[#F9FAFB]">
       <Navbar />
 
-      <main className="max-w-5xl mx-auto px-4 sm:px-6 py-8 pb-24 sm:pb-8">
-        {/* Hero */}
+      <main className="max-w-6xl mx-auto px-4 sm:px-6 py-8 sm:py-12 pb-32 sm:pb-12">
+        {/* Hero — clean, minimal, no gradient blob */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="text-center mb-10"
+          transition={{ duration: 0.4, ease: 'easeOut' }}
+          className="text-center mb-10 sm:mb-16 mt-4 sm:mt-8"
         >
-          <h1 className="text-4xl sm:text-5xl font-bold text-gray-900 mb-3">
-            Smart Grocery
-            <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-              {' '}Shopping
-            </span>
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#F3F4F6] text-[#6B7280] text-xs font-semibold tracking-wide mb-4 sm:mb-6">
+            <span className="w-2 h-2 rounded-full bg-[#16A34A] live-dot" />
+            LIVE REAL-TIME PRICES
+          </div>
+          <h1 className="text-4xl sm:text-5xl md:text-7xl font-bold text-[#111827] mb-4 sm:mb-6 tracking-tight leading-[1.1]">
+            Find the best{' '}
+            <span className="text-[#2563EB]">Grocery Deal.</span>
           </h1>
-          <p className="text-lg text-gray-500 max-w-lg mx-auto">
-            Compare prices across Blinkit, Zepto, Instamart & BigBasket.
-            Save money on every order.
+          <p className="text-base sm:text-xl text-[#6B7280] max-w-2xl mx-auto font-medium leading-relaxed px-4 sm:px-0">
+            Real-time price comparison across Blinkit, Zepto, Instamart, BigBasket & Amazon Fresh.
           </p>
-          <Link href="/search">
-            <motion.button
-              whileHover={{ scale: 1.03 }}
-              whileTap={{ scale: 0.97 }}
-              className="mt-6 px-8 py-3.5 bg-blue-500 text-white rounded-2xl text-base font-semibold shadow-lg shadow-blue-500/25 hover:bg-blue-600 transition-colors"
-            >
-              🔍 Start Searching
-            </motion.button>
-          </Link>
+          <div className="mt-8 sm:mt-10">
+            <Link href="/search">
+              <motion.button
+                whileTap={{ scale: 0.97 }}
+                className="px-6 sm:px-8 py-3.5 sm:py-4 bg-[#111827] text-white rounded-2xl text-base sm:text-lg font-bold shadow-sm hover:bg-[#1F2937] transition-all duration-200 inline-flex items-center gap-2 active:scale-95"
+              >
+                🔍 Start Searching
+              </motion.button>
+            </Link>
+          </div>
         </motion.div>
 
         {/* Platform chips */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ delay: 0.3 }}
-          className="flex items-center justify-center gap-3 mb-10 flex-wrap"
+          transition={{ delay: 0.3, duration: 0.5 }}
+          className="flex flex-col items-center gap-3 sm:gap-4 mb-12 sm:mb-20"
         >
-          {['blinkit', 'zepto', 'instamart', 'bigbasket'].map((p) => (
-            <PlatformBadge key={p} platform={p} />
-          ))}
+          <p className="text-[10px] sm:text-xs font-semibold text-[#9CA3AF] uppercase tracking-widest">Supported Platforms</p>
+          <div className="flex items-center gap-2 sm:gap-3 overflow-x-auto max-w-full px-4 pb-1">
+            {['blinkit', 'zepto', 'instamart', 'bigbasket', 'amazonfresh'].map((p) => (
+              <div key={p} className="shrink-0">
+                <PlatformBadge platform={p} />
+              </div>
+            ))}
+          </div>
         </motion.div>
 
-        {/* Feed sections (visible when logged in) */}
+        {/* Feed sections (logged in) */}
         {isLoggedIn && (
           <motion.div
             variants={container}
             initial="hidden"
             animate="show"
-            className="grid grid-cols-1 md:grid-cols-2 gap-6"
+            className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-8"
           >
             {/* Deals */}
-            <motion.div variants={item} className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm">
-              <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">
-                🔥 Today&apos;s Deals
+            <motion.div variants={item} className="soft-card p-5 sm:p-8 border border-gray-100">
+              <h2 className="text-xs sm:text-sm font-semibold text-[#9CA3AF] uppercase tracking-widest mb-4 sm:mb-6 flex items-center gap-2">
+                <span className="text-lg sm:text-xl">🔥</span> Today&apos;s Deals
               </h2>
               {isLoading ? (
                 <SkeletonFeedCard />
               ) : (
-                <div className="space-y-3">
+                <div className="space-y-2.5">
                   {feedData?.deals?.map((deal, i) => (
                     <div
                       key={i}
-                      className="flex items-center justify-between p-3 rounded-xl bg-green-50/50 border border-green-100"
+                      className="flex items-center justify-between p-3 sm:p-4 rounded-xl bg-[#F9FAFB] border border-gray-100"
                     >
-                      <div>
-                        <p className="text-sm font-medium text-gray-900">
-                          {deal.item}
-                        </p>
+                      <div className="flex flex-col gap-1.5 min-w-0">
+                        <p className="text-sm font-semibold text-[#111827] truncate">{deal.item}</p>
                         <PlatformBadge platform={deal.platform} />
                       </div>
-                      <div className="text-right">
-                        <p className="text-xs text-gray-400 line-through">
-                          ₹{deal.original_price}
-                        </p>
-                        <p className="text-lg font-bold text-green-600">
-                          ₹{deal.deal_price}
-                        </p>
-                        <span className="text-xs bg-green-100 text-green-700 px-1.5 py-0.5 rounded font-medium">
-                          -{deal.discount_percent}%
+                      <div className="text-right shrink-0 ml-3">
+                        <p className="text-xs text-[#9CA3AF] line-through">₹{deal.original_price}</p>
+                        <p className="text-xl font-bold text-[#16A34A]">₹{deal.deal_price}</p>
+                        <span className="text-[10px] text-[#16A34A] font-semibold">
+                          Save {deal.discount_percent}%
                         </span>
                       </div>
                     </div>
@@ -130,59 +131,27 @@ export default function HomePage() {
             </motion.div>
 
             {/* Price Drops */}
-            <motion.div variants={item} className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm">
-              <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">
-                📉 Price Drops
+            <motion.div variants={item} className="soft-card p-5 sm:p-8 border border-gray-100">
+              <h2 className="text-xs sm:text-sm font-semibold text-[#9CA3AF] uppercase tracking-widest mb-4 sm:mb-6 flex items-center gap-2">
+                <span className="text-lg sm:text-xl">📉</span> Price Drops
               </h2>
               {isLoading ? (
                 <SkeletonFeedCard />
               ) : (
-                <div className="space-y-3">
+                <div className="space-y-2.5">
                   {feedData?.price_drops?.map((drop, i) => (
                     <div
                       key={i}
-                      className="flex items-center justify-between p-3 rounded-xl bg-blue-50/50 border border-blue-100"
+                      className="flex items-center justify-between p-3 sm:p-4 rounded-xl bg-[#F9FAFB] border border-gray-100"
                     >
-                      <div>
-                        <p className="text-sm font-medium text-gray-900">
-                          {drop.item}
-                        </p>
+                      <div className="flex flex-col gap-1.5 min-w-0">
+                        <p className="text-sm font-semibold text-[#111827] truncate">{drop.item}</p>
                         <PlatformBadge platform={drop.platform} />
                       </div>
-                      <div className="text-right">
-                        <p className="text-xs text-gray-400 line-through">
-                          ₹{drop.old_price}
-                        </p>
-                        <p className="text-lg font-bold text-blue-600">
-                          ₹{drop.new_price}
-                        </p>
+                      <div className="text-right shrink-0 ml-3">
+                        <p className="text-xs text-[#9CA3AF] line-through">₹{drop.old_price}</p>
+                        <p className="text-xl font-bold text-[#2563EB]">₹{drop.new_price}</p>
                       </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </motion.div>
-
-            {/* Refill Suggestions */}
-            <motion.div variants={item} className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm">
-              <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">
-                🔄 Time to Refill
-              </h2>
-              {isLoading ? (
-                <SkeletonFeedCard />
-              ) : (
-                <div className="space-y-2">
-                  {feedData?.refill_suggestions?.map((s, i) => (
-                    <div
-                      key={i}
-                      className="flex items-center justify-between p-3 rounded-xl hover:bg-gray-50 transition-colors"
-                    >
-                      <p className="text-sm font-medium text-gray-900 capitalize">
-                        {s.item}
-                      </p>
-                      <p className="text-xs text-gray-500">
-                        Last: {s.last_purchased}
-                      </p>
                     </div>
                   ))}
                 </div>
@@ -190,21 +159,21 @@ export default function HomePage() {
             </motion.div>
 
             {/* AI Recommendations */}
-            <motion.div variants={item} className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm">
-              <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">
-                🧠 Recommended
+            <motion.div variants={item} className="soft-card p-5 sm:p-8 border border-gray-100 lg:col-span-2">
+              <h2 className="text-xs sm:text-sm font-semibold text-[#9CA3AF] uppercase tracking-widest mb-3 flex items-center gap-2">
+                <span className="text-lg sm:text-xl">🧠</span> Smart Recommendations
               </h2>
               {isLoading ? (
                 <SkeletonFeedCard />
               ) : (
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap gap-2 sm:gap-3">
                   {feedData?.recommendations?.map((r, i) => (
                     <Link href={`/search?q=${r}`} key={i}>
                       <motion.span
-                        whileHover={{ scale: 1.05 }}
-                        className="inline-block px-3 py-1.5 bg-purple-50 text-purple-700 rounded-lg text-sm font-medium hover:bg-purple-100 transition-colors capitalize cursor-pointer"
+                        whileTap={{ scale: 0.97 }}
+                        className="inline-flex items-center gap-2 px-3 sm:px-4 py-2 sm:py-2.5 bg-[#F3F4F6] hover:bg-[#E5E7EB] text-[#111827] rounded-xl text-xs sm:text-sm font-medium transition-all duration-200 capitalize cursor-pointer"
                       >
-                        {r}
+                        {r} <span className="text-[#9CA3AF]">→</span>
                       </motion.span>
                     </Link>
                   ))}
@@ -214,43 +183,49 @@ export default function HomePage() {
           </motion.div>
         )}
 
-        {/* Not logged in → Feature cards */}
+        {/* Not logged in — Feature cards */}
         {!isLoggedIn && (
           <motion.div
             variants={container}
             initial="hidden"
             animate="show"
-            className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-4"
+            className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6"
           >
             {[
               {
                 icon: '⚡',
                 title: 'Compare Instantly',
-                desc: 'See prices from 4 platforms side by side',
+                desc: 'Real-time prices from 5 platforms side by side.',
               },
               {
                 icon: '🧠',
                 title: 'AI Suggestions',
-                desc: 'Type "pasta dinner" and get the full list',
+                desc: 'Type "pasta dinner" and get the full shopping list.',
               },
               {
                 icon: '💰',
-                title: 'Save Money',
-                desc: 'Always pick the cheapest or fastest option',
+                title: 'Always Save',
+                desc: 'Pick the cheapest or fastest option every time.',
               },
             ].map((f, i) => (
-              <motion.div
-                key={i}
-                variants={item}
-                className="bg-white rounded-2xl border border-gray-100 p-6 text-center shadow-sm hover:shadow-md transition-shadow"
-              >
-                <div className="text-3xl mb-3">{f.icon}</div>
-                <h3 className="font-semibold text-gray-900 mb-1">{f.title}</h3>
-                <p className="text-sm text-gray-500">{f.desc}</p>
+              <motion.div key={i} variants={item} className="soft-card p-6 sm:p-8 text-center border border-gray-100">
+                <div className="w-14 h-14 sm:w-16 sm:h-16 mx-auto bg-[#F3F4F6] rounded-2xl flex items-center justify-center text-2xl sm:text-3xl mb-4 sm:mb-6">
+                  {f.icon}
+                </div>
+                <h3 className="text-lg sm:text-xl font-bold text-[#111827] mb-2 sm:mb-3 tracking-tight">{f.title}</h3>
+                <p className="text-sm sm:text-base text-[#6B7280] font-medium leading-relaxed">{f.desc}</p>
               </motion.div>
             ))}
           </motion.div>
         )}
+
+        {/* Legal Disclaimer */}
+        <div className="mt-16 sm:mt-24 text-center pb-4">
+          <p className="text-[10px] sm:text-xs text-[#9CA3AF] max-w-xl mx-auto leading-relaxed">
+            Prices and product information are sourced from publicly available data and may not reflect current availability.
+            OmniCart is an independent comparison tool and is not affiliated with, endorsed by, or sponsored by any of the listed platforms.
+          </p>
+        </div>
       </main>
     </div>
   );

@@ -1,131 +1,96 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Connector, Product } from './connector.interface';
+import { scrapePage } from './browser-pool';
 
 /**
- * Zepto Mock Connector
- * Per 08_CONNECTORS_SPEC.md — each platform = independent connector
+ * Zepto Connector — Headless Chrome
+ * Verified: In headless mode, products render as flat text without data-testid.
+ * Uses innerText parsing to extract product names and prices.
  */
 @Injectable()
 export class ZeptoConnector implements Connector {
   readonly platformName = 'zepto';
   private readonly logger = new Logger(ZeptoConnector.name);
 
-  private readonly mockCatalog: Record<string, Product[]> = {
-    milk: [
-      {
-        name: 'Amul Gold Full Cream Milk',
-        normalized_name: 'milk',
-        price: 33,
-        currency: 'INR',
-        quantity: '500ml',
-        platform: 'zepto',
-        eta_minutes: 8,
-        in_stock: true,
-      },
-    ],
-    bread: [
-      {
-        name: 'English Oven Sandwich Bread',
-        normalized_name: 'bread',
-        price: 45,
-        currency: 'INR',
-        quantity: '400g',
-        platform: 'zepto',
-        eta_minutes: 8,
-        in_stock: true,
-      },
-    ],
-    rice: [
-      {
-        name: 'Daawat Basmati Rice',
-        normalized_name: 'rice',
-        price: 210,
-        currency: 'INR',
-        quantity: '1kg',
-        platform: 'zepto',
-        eta_minutes: 9,
-        in_stock: true,
-      },
-    ],
-    pasta: [
-      {
-        name: 'Disano Penne Rigate Pasta',
-        normalized_name: 'pasta',
-        price: 135,
-        currency: 'INR',
-        quantity: '500g',
-        platform: 'zepto',
-        eta_minutes: 8,
-        in_stock: true,
-      },
-    ],
-    eggs: [
-      {
-        name: 'Country Eggs (Pack of 6)',
-        normalized_name: 'eggs',
-        price: 72,
-        currency: 'INR',
-        quantity: '6 pcs',
-        platform: 'zepto',
-        eta_minutes: 8,
-        in_stock: true,
-      },
-    ],
-    butter: [
-      {
-        name: 'Amul Pasteurised Butter',
-        normalized_name: 'butter',
-        price: 56,
-        currency: 'INR',
-        quantity: '100g',
-        platform: 'zepto',
-        eta_minutes: 8,
-        in_stock: true,
-      },
-    ],
-    cheese: [
-      {
-        name: 'Gowardhan Cheese Slices',
-        normalized_name: 'cheese',
-        price: 99,
-        currency: 'INR',
-        quantity: '200g',
-        platform: 'zepto',
-        eta_minutes: 8,
-        in_stock: true,
-      },
-    ],
-    sauce: [
-      {
-        name: 'Maggi Hot & Sweet Sauce',
-        normalized_name: 'sauce',
-        price: 109,
-        currency: 'INR',
-        quantity: '500g',
-        platform: 'zepto',
-        eta_minutes: 8,
-        in_stock: true,
-      },
-    ],
-  };
-
   async search(query: string, _lat: number, _lng: number): Promise<Product[]> {
-    this.logger.debug(`[zepto] Searching: "${query}"`);
-    await this.delay(20 + Math.random() * 40);
+    this.logger.debug(`[zepto] Scraping: "${query}"`);
 
-    const normalizedQuery = query.toLowerCase().trim();
-    const results: Product[] = [];
+    const url = `https://www.zepto.com/search?query=${encodeURIComponent(query)}`;
 
-    for (const [key, products] of Object.entries(this.mockCatalog)) {
-      if (normalizedQuery.includes(key) || key.includes(normalizedQuery)) {
-        results.push(...products);
-      }
-    }
+    const products = await scrapePage<Product[]>(
+      url,
+      async (page) => {
+        // Zepto needs time for JS to fully render
+        await new Promise((r) => setTimeout(r, 6000));
 
-    return results;
-  }
+        return page.evaluate((q: string) => {
+          const items: any[] = [];
+          const bodyText = document.body?.innerText || '';
 
-  private delay(ms: number): Promise<void> {
-    return new Promise((resolve) => setTimeout(resolve, ms));
+          // Parse Zepto's flat text structure:
+          // Pattern: ADD\n₹{price}\n{optional discount}\n{name}\n{quantity}\n{rating}
+          const lines = bodyText.split('\n').map((l: string) => l.trim()).filter((l: string) => l.length > 0);
+
+          for (let i = 0; i < lines.length; i++) {
+            if (lines[i] === 'ADD' && i + 2 < lines.length) {
+              // Next line should be price (₹XX)
+              let priceIdx = i + 1;
+              let price = 0;
+              let name = '';
+              let quantity = '';
+
+              // Parse price
+              const priceText = lines[priceIdx];
+              if (priceText && priceText.startsWith('₹')) {
+                price = parseFloat(priceText.replace(/[^\d.]/g, '')) || 0;
+              }
+
+              // Skip discount lines like "₹1\nOFF"
+              let nameIdx = priceIdx + 1;
+              while (nameIdx < lines.length && (
+                lines[nameIdx] === 'OFF' ||
+                lines[nameIdx].startsWith('₹') ||
+                /^\d+%/.test(lines[nameIdx])
+              )) {
+                nameIdx++;
+              }
+
+              // Product name
+              if (nameIdx < lines.length) {
+                name = lines[nameIdx];
+              }
+
+              // Quantity (next line after name, usually like "1 pack (500 ml)")
+              if (nameIdx + 1 < lines.length) {
+                const qLine = lines[nameIdx + 1];
+                if (/\d+\s*(pack|g|kg|ml|l|pcs|pouch|piece)/i.test(qLine)) {
+                  quantity = qLine;
+                }
+              }
+
+              if (name && name.length > 3 && !name.startsWith('₹') && name !== 'ADD') {
+                items.push({
+                  name,
+                  normalized_name: q.toLowerCase(),
+                  price,
+                  currency: 'INR',
+                  quantity,
+                  platform: 'zepto',
+                  eta_minutes: 8,
+                  in_stock: true,
+                });
+              }
+            }
+          }
+
+          return items.slice(0, 15);
+        }, query);
+      },
+      8000,
+    );
+
+    const result = products || [];
+    this.logger.log(`[zepto] Scraped ${result.length} products for "${query}"`);
+    return result;
   }
 }

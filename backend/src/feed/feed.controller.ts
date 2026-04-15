@@ -1,5 +1,6 @@
 import { Controller, Get, Req } from '@nestjs/common';
 import { FeedService } from './feed.service';
+import { Public } from '../auth/decorators/public.decorator';
 
 /**
  * Feed Controller
@@ -9,8 +10,10 @@ import { FeedService } from './feed.service';
 export class FeedController {
   constructor(private readonly feedService: FeedService) {}
 
+  @Public()
   @Get()
   getFeed(@Req() req: any) {
-    return this.feedService.getFeed(req.user.userId);
+    const userId = req.user?.sub || 'anonymous';
+    return this.feedService.getFeed(userId);
   }
 }
