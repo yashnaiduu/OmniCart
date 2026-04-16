@@ -1,9 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Connector, Product } from './connector.interface';
 import { scrapePage } from './browser-pool';
+import type { Page } from 'playwright';
 
 /**
- * Amazon Fresh Connector — Headless Chrome
+ * Amazon Fresh Connector — Playwright Stealth
  * Navigates to https://www.amazon.in/s?k={query}&i=nowstore
  * Extracts product cards from Amazon's Now Store index
  */
@@ -12,14 +13,14 @@ export class AmazonFreshConnector implements Connector {
   readonly platformName = 'amazonfresh';
   private readonly logger = new Logger(AmazonFreshConnector.name);
 
-  async search(query: string, _lat: number, _lng: number): Promise<Product[]> {
+  async search(query: string, lat: number, lng: number): Promise<Product[]> {
     this.logger.debug(`[amazonfresh] Scraping: "${query}"`);
 
     const url = `https://www.amazon.in/s?k=${encodeURIComponent(query)}&i=nowstore`;
 
     const products = await scrapePage<Product[]>(
       url,
-      async (page) => {
+      async (page: Page) => {
         return page.evaluate((q: string) => {
           const items: any[] = [];
 
@@ -33,7 +34,6 @@ export class AmazonFreshConnector implements Connector {
             if (!asin) return;
 
             const nameEl = card.querySelector('h2 a span, h2 span, .a-text-normal');
-            const priceEl = card.querySelector('.a-price .a-offscreen, .a-price-whole');
             const imgEl = card.querySelector('img.s-image');
 
             const name = nameEl?.textContent?.trim();
@@ -66,6 +66,8 @@ export class AmazonFreshConnector implements Connector {
         }, query);
       },
       5000,
+      lat,
+      lng,
     );
 
     const result = products || [];
