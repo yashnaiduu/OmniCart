@@ -119,86 +119,183 @@ export class InstamartConnector implements Connector {
     const inStock = p.in_stock !== false && p.available !== false && p.inventory !== 0;
 
     return {
+      platform: 'instamart',
+      productId: p.id || p.product_id || Math.random().toString(36).substring(7),
       name,
       normalized_name: name.toLowerCase().replace(/[^a-z0-9\s]/g, '').trim(),
-      price: typeof price === 'number' ? price : parseFloat(String(price).replace(/[^\d.]/g, '')) || 0,
-      currency: 'INR',
-      quantity: p.quantity || p.weight || p.pack_desc || '',
-      platform: 'instamart',
-      eta_minutes: 15,
-      in_stock: inStock,
-      image_url: imageUrl,
-      product_url: p.product_url || undefined,
+      imageUrl,
+      productUrl: p.product_url || undefined,
+      price: {
+        current: typeof price === 'number' ? price : parseFloat(String(price).replace(/[^\d.]/g, '')) || 0,
+        original: p.mrp || undefined,
+      },
+      inventory: {
+        inStock,
+        quantity: p.inventory_count || undefined,
+      },
+      delivery: {
+        eta: 15,
+        etaText: '15 mins',
+      },
+      metadata: {
+        weight: p.quantity || p.weight || p.pack_desc || '',
+      },
+      scrapedAt: new Date(),
     };
   }
 
   /**
-   * DOM fallback — parse innerText when API interception fails
+   * DOM fallback — card-based extraction when API interception fails
    */
   private async domFallback(page: Page, _query: string): Promise<Product[]> {
     this.logger.debug('[instamart] Using DOM fallback');
+
+    // Scroll to trigger lazy loading
+    await page.waitForTimeout(2000);
+    await page.evaluate(() => window.scrollBy(0, 1500));
+    await page.waitForTimeout(2000);
 
     return page.evaluate(() => {
       const items: any[] = [];
       const seen = new Set<string>();
 
-      // Collect product images
-      const allImages = Array.from(document.querySelectorAll('img'));
-      const productImages = allImages.filter((img) => {
-        const src = img.src || img.getAttribute('data-src') || '';
+      // Strategy 1: Find product cards by looking for clickable containers with price + name + image
+      const allLinks = Array.from(document.querySelectorAll('a[href]'));
+      const productLinks = allLinks.filter((a) => {
+        const href = a.getAttribute('href') || '';
         return (
-          src.startsWith('http') &&
-          !src.includes('data:image') &&
-          !src.endsWith('.svg') &&
-          !src.includes('/logo') &&
-          !src.includes('/icon') &&
-          !src.includes('/banner') &&
-          (src.includes('swiggy') || src.includes('res.cloudinary') || /\.(jpg|jpeg|png|webp)/i.test(src))
+          href.includes('/product') ||
+          href.includes('/item') ||
+          href.includes('/instamart')
         );
       });
 
-      const bodyText = document.body?.innerText || '';
-      const lines = bodyText.split('\n').map((l: string) => l.trim()).filter((l: string) => l.length > 0);
+      for (const link of productLinks) {
+        const container = (link.closest('div') || link) as HTMLElement;
+        const text = container.innerText || '';
+        
+        // Must contain a price
+        const priceMatch = text.match(/₹\s*(\d+(?:\.\d+)?)/);
+        if (!priceMatch) continue;
+        const price = parseFloat(priceMatch[1]);
+        if (price <= 0 || price >= 10000) continue;
 
-      let imageIndex = 0;
-      for (let i = 0; i < lines.length; i++) {
-        const line = lines[i];
-        // Look for price patterns followed by product names
-        if (line.startsWith('₹') && i + 1 < lines.length) {
-          const price = parseFloat(line.replace(/[^\d.]/g, '')) || 0;
-          if (price <= 0 || price >= 10000) continue;
-
-          // Look for product name nearby
-          let name = '';
-          for (let j = i + 1; j < Math.min(i + 4, lines.length); j++) {
-            const candidate = lines[j];
-            if (candidate.length > 3 && !candidate.startsWith('₹') && !/^\d+%/.test(candidate)) {
-              name = candidate;
-              break;
-            }
+        // Find the image within this container
+        let imageUrl = '';
+        const imgs = container.querySelectorAll('img');
+        for (const img of imgs) {
+          const src = (img as HTMLImageElement).src || img.getAttribute('data-src') || '';
+          if (
+            src.startsWith('http') &&
+            !src.includes('data:image') &&
+            !src.endsWith('.svg') &&
+            !src.includes('/logo') &&
+            !src.includes('/icon') &&
+            !src.includes('/banner') &&
+            (src.includes('swiggy') || src.includes('cloudinary') || /\.(jpg|jpeg|png|webp)/i.test(src))
+          ) {
+            imageUrl = src;
+            break;
           }
+        }
 
-          if (name && !seen.has(name)) {
-            seen.add(name);
-            const img = productImages[imageIndex] || null;
-            imageIndex++;
+        // Find the name — longest text that's not a price/discount
+        const lines = text.split('\n').map((l: string) => l.trim()).filter((l: string) =>
+          l.length > 3 &&
+          !l.startsWith('₹') &&
+          !/^\d+%/.test(l) &&
+          l !== 'ADD' &&
+          l !== 'Add' &&
+          !/^\d+\s*min/i.test(l)
+        );
 
-            items.push({
-              name,
-              normalized_name: name.toLowerCase().replace(/[^a-z0-9\s]/g, '').trim(),
-              price,
-              currency: 'INR',
-              quantity: '',
-              platform: 'instamart',
-              eta_minutes: 15,
-              in_stock: true,
-              image_url: img?.src || undefined,
-            });
+        const name = lines.sort((a: string, b: string) => b.length - a.length)[0];
+        if (!name || seen.has(name)) continue;
+        seen.add(name);
+
+        items.push({
+          platform: 'instamart',
+          productId: Math.random().toString(36).substring(7),
+          name,
+          normalized_name: name.toLowerCase().replace(/[^a-z0-9\s]/g, '').trim(),
+          imageUrl: imageUrl || '',
+          price: {
+            current: price,
+          },
+          inventory: {
+            inStock: true,
+          },
+          delivery: {
+            eta: 15,
+            etaText: '15 mins',
+          },
+          metadata: {},
+          scrapedAt: new Date(),
+        });
+      }
+
+      // Strategy 2: Fallback to innerText parsing if strategy 1 found nothing
+      if (items.length === 0) {
+        const allImages = Array.from(document.querySelectorAll('img'));
+        const productImages = allImages.filter((img) => {
+          const src = img.src || img.getAttribute('data-src') || '';
+          return (
+            src.startsWith('http') &&
+            !src.includes('data:image') &&
+            !src.endsWith('.svg') &&
+            !src.includes('/logo') &&
+            !src.includes('/icon') &&
+            (src.includes('swiggy') || src.includes('cloudinary') || /\.(jpg|jpeg|png|webp)/i.test(src))
+          );
+        });
+
+        const bodyText = document.body?.innerText || '';
+        const bodyLines = bodyText.split('\n').map((l: string) => l.trim()).filter((l: string) => l.length > 0);
+        let imgIdx = 0;
+
+        for (let i = 0; i < bodyLines.length; i++) {
+          if (bodyLines[i].startsWith('₹')) {
+            const p = parseFloat(bodyLines[i].replace(/[^\d.]/g, '')) || 0;
+            if (p <= 0 || p >= 10000) continue;
+
+            let nm = '';
+            for (let j = i + 1; j < Math.min(i + 4, bodyLines.length); j++) {
+              if (bodyLines[j].length > 3 && !bodyLines[j].startsWith('₹') && !/^\d+%/.test(bodyLines[j])) {
+                nm = bodyLines[j];
+                break;
+              }
+            }
+
+            if (nm && !seen.has(nm)) {
+              seen.add(nm);
+              const img = productImages[imgIdx] || null;
+              imgIdx++;
+              items.push({
+                platform: 'instamart',
+                productId: Math.random().toString(36).substring(7),
+                name: nm,
+                normalized_name: nm.toLowerCase().replace(/[^a-z0-9\s]/g, '').trim(),
+                imageUrl: img?.src || '',
+                price: {
+                  current: p,
+                },
+                inventory: {
+                  inStock: true,
+                },
+                delivery: {
+                  eta: 15,
+                  etaText: '15 mins',
+                },
+                metadata: {},
+                scrapedAt: new Date(),
+              });
+            }
           }
         }
       }
 
-      return items.slice(0, 15);
+      return items.slice(0, 20);
     });
   }
 }
+

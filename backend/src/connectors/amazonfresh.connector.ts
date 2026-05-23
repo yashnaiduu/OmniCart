@@ -49,16 +49,24 @@ export class AmazonFreshConnector implements Connector {
             }
 
             items.push({
+              platform: 'amazon',
+              productId: asin,
               name,
               normalized_name: name.toLowerCase().replace(/[^a-z0-9\s]/g, '').trim(),
-              price,
-              currency: 'INR',
-              quantity: '',
-              platform: 'amazonfresh',
-              eta_minutes: 120,
-              in_stock: true,
-              image_url: (imgEl as HTMLImageElement)?.src || undefined,
-              product_url: `https://www.amazon.in/dp/${asin}`,
+              imageUrl: (imgEl as HTMLImageElement)?.src || '',
+              productUrl: `https://www.amazon.in/dp/${asin}`,
+              price: {
+                current: price,
+              },
+              inventory: {
+                inStock: true,
+              },
+              delivery: {
+                eta: 120,
+                etaText: '120 mins',
+              },
+              metadata: {},
+              scrapedAt: new Date(),
             });
           });
 

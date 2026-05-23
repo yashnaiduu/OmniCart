@@ -6,16 +6,36 @@
  * Each platform = independent connector service.
  */
 export interface Product {
+  platform: 'swiggy' | 'blinkit' | 'zepto' | 'bigbasket' | 'amazon' | string;
+  productId: string;
   name: string;
   normalized_name: string;
-  price: number;
-  currency: string;
-  quantity: string;
-  platform: string;
-  eta_minutes: number;
-  in_stock: boolean;
-  product_url?: string;
-  image_url?: string;
+  brand?: string;
+  imageUrl: string;
+  productUrl?: string;
+  price: {
+    current: number;
+    original?: number;
+    discount?: number;
+    discountPercentage?: number;
+  };
+  inventory: {
+    inStock: boolean;
+    quantity?: number;
+  };
+  delivery: {
+    eta: number; // minutes
+    etaText: string;
+    fee?: number;
+    minOrder?: number;
+  };
+  metadata: {
+    rating?: number;
+    reviewCount?: number;
+    weight?: string;
+    unit?: string;
+  };
+  scrapedAt: Date;
 }
 
 export interface Connector {

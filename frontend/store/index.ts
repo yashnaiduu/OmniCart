@@ -42,7 +42,7 @@ export const useCartStore = create<CartStore>((set, get) => ({
   clearCart: () => set({ items: [] }),
 
   totalCost: () =>
-    get().items.reduce((sum, i) => sum + i.selectedOption.price * i.quantity, 0),
+    get().items.reduce((sum, i) => sum + i.selectedOption.price.current * i.quantity, 0),
 }));
 
 // ── Auth Store ────────────────────────

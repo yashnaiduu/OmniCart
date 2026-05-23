@@ -99,16 +99,28 @@ export class BigBasketConnector implements Connector {
     const brand = p.brand?.name || p.brand || '';
 
     return {
+      platform: 'bigbasket',
+      productId: p.id || p.product_id || Math.random().toString(36).substring(7),
       name: brand ? `${brand} ${name}` : name,
       normalized_name: name.toLowerCase().replace(/[^a-z0-9\s]/g, '').trim(),
-      price: priceNum,
-      currency: 'INR',
-      quantity: weight,
-      platform: 'bigbasket',
-      eta_minutes: 30,
-      in_stock: p.in_stock !== false && p.available !== false,
-      image_url: imageUrl || undefined,
-      product_url: p.absolute_url ? `https://www.bigbasket.com${p.absolute_url}` : undefined,
+      brand,
+      imageUrl,
+      productUrl: p.absolute_url ? `https://www.bigbasket.com${p.absolute_url}` : undefined,
+      price: {
+        current: priceNum,
+        original: p.mrp || undefined,
+      },
+      inventory: {
+        inStock: p.in_stock !== false && p.available !== false,
+      },
+      delivery: {
+        eta: 30,
+        etaText: '30 mins',
+      },
+      metadata: {
+        weight,
+      },
+      scrapedAt: new Date(),
     };
   }
 
@@ -138,52 +150,60 @@ export class BigBasketConnector implements Connector {
         if (!name || seen.has(name)) return;
         seen.add(name);
 
-        // Find product image
+        // Find product image (handle lazy loading and picture tags)
         let imageUrl = '';
-        let imgEl = card.querySelector('img');
-        if (!imgEl) {
-          const parent = card.parentElement;
-          if (parent) imgEl = parent.querySelector('img');
-        }
-        if (imgEl) {
-          const src = imgEl.src || imgEl.getAttribute('data-src') || imgEl.getAttribute('srcset')?.split(' ')[0] || '';
-          if (
-            src.startsWith('http') &&
-            !src.includes('data:image') &&
-            !src.endsWith('.svg') &&
-            !src.includes('/logo') &&
-            !src.includes('/icon')
-          ) {
+        const imgEls = Array.from(card.querySelectorAll('img'));
+        for (const img of imgEls) {
+          const src = img.src || img.getAttribute('data-src') || img.getAttribute('srcset')?.split(' ')[0] || '';
+          if (src.includes('bigbasket.com') && !src.includes('data:image')) {
             imageUrl = src;
+            break;
           }
+        }
+        if (!imageUrl) {
+          const source = card.querySelector('picture source');
+           if (source) imageUrl = source.getAttribute('srcset')?.split(' ')[0] || '';
         }
 
-        // Find price
-        const allSpans = card.querySelectorAll('span');
+        // Find price: stringently look for ₹
         let price = 0;
         let weight = '';
-        for (const span of allSpans) {
-          const text = span.textContent?.trim() || '';
-          if ((text.startsWith('₹') || /^\d+$/.test(text)) && price === 0) {
-            const parsed = parseFloat(text.replace(/[^\d.]/g, ''));
-            if (parsed > 0 && parsed < 10000) price = parsed;
+        const textElements = Array.from(card.querySelectorAll('span, div, p'));
+        for (const el of textElements) {
+          const text = el.textContent?.trim() || '';
+          if (text.includes('₹') && price === 0) {
+            const match = text.match(/₹\s*(\d+(?:\.\d+)?)/);
+            if (match) {
+              const parsed = parseFloat(match[1]);
+              if (parsed > 0 && parsed < 200000) price = parsed;
+            }
           }
-          if (/\d+\s*(g|kg|ml|l|pack|pcs|pouch)/i.test(text) && !weight) {
+          if (/\d+\s*(g|kg|ml|l|pack|pcs|pouch)/i.test(text) && text.length < 20 && !weight) {
             weight = text;
           }
         }
 
         items.push({
+          platform: 'bigbasket',
+          productId: Math.random().toString(36).substring(7),
           name,
           normalized_name: name.toLowerCase().replace(/[^a-z0-9\s]/g, '').trim(),
-          price,
-          currency: 'INR',
-          quantity: weight,
-          platform: 'bigbasket',
-          eta_minutes: 30,
-          in_stock: true,
-          image_url: imageUrl || undefined,
-          product_url: 'https://www.bigbasket.com' + (link as HTMLAnchorElement).getAttribute('href'),
+          imageUrl: imageUrl || '',
+          productUrl: 'https://www.bigbasket.com' + (link as HTMLAnchorElement).getAttribute('href'),
+          price: {
+            current: price,
+          },
+          inventory: {
+            inStock: true,
+          },
+          delivery: {
+            eta: 30,
+            etaText: '30 mins',
+          },
+          metadata: {
+            weight,
+          },
+          scrapedAt: new Date(),
         });
       });
 

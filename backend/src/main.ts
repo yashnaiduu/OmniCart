@@ -1,17 +1,30 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
-import { ValidationPipe, Logger } from '@nestjs/common';
+import { ValidationPipe } from '@nestjs/common';
 import { GlobalExceptionFilter } from './common/filters/global-exception.filter';
 import { TransformInterceptor } from './common/interceptors/transform.interceptor';
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
+import { CustomLogger } from './logger/logger.service';
+import * as Sentry from '@sentry/node';
+
+import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
-  const logger = new Logger('Bootstrap');
+  const customLogger = new CustomLogger();
+  const app = await NestFactory.create(AppModule, {
+    logger: customLogger,
+  });
+
+  // Initialize Sentry for Error Tracking
+  Sentry.init({
+    dsn: process.env.SENTRY_DSN || '',
+    environment: process.env.NODE_ENV || 'development',
+    tracesSampleRate: 1.0,
+  });
 
   // CORS
   app.enableCors({
-    origin: '*', // TODO: restrict in prod
+    origin: process.env.FRONTEND_URL || 'http://localhost:3000',
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
     credentials: true,
   });
@@ -37,8 +50,18 @@ async function bootstrap() {
     new TransformInterceptor(),
   );
 
+  const config = new DocumentBuilder()
+    .setTitle('OmniCart API')
+    .setDescription('The OmniCart API backend description')
+    .setVersion('1.0')
+    .addBearerAuth()
+    .build();
+  const document = SwaggerModule.createDocument(app, config);
+  SwaggerModule.setup('api/docs', app, document);
+
   const port = process.env.PORT ?? 3000;
   await app.listen(port);
-  logger.log(`🚀 OmniCart API running on http://localhost:${port}/api/v1`);
+  customLogger.log(`🚀 OmniCart API running on http://localhost:${port}/api/v1`, 'Bootstrap');
+  customLogger.log(`📚 Swagger Docs running on http://localhost:${port}/api/docs`, 'Bootstrap');
 }
 bootstrap();

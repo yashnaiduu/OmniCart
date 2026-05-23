@@ -92,16 +92,27 @@ export class BlinkitConnector implements Connector {
     const quantity = p.unit || p.weight || p.quantity || p.pack_desc || '';
 
     return {
+      platform: 'blinkit',
+      productId: p.id || p.product_id || Math.random().toString(36).substring(7),
       name,
       normalized_name: name.toLowerCase().replace(/[^a-z0-9\s]/g, '').trim(),
-      price: priceNum,
-      currency: 'INR',
-      quantity,
-      platform: 'blinkit',
-      eta_minutes: p.eta || p.delivery_time || 12,
-      in_stock: p.in_stock !== false && p.available !== false,
-      image_url: imageUrl || undefined,
-      product_url: p.product_url || p.slug ? `https://blinkit.com${p.slug || ''}` : undefined,
+      imageUrl,
+      productUrl: p.product_url || p.slug ? `https://blinkit.com${p.slug || ''}` : undefined,
+      price: {
+        current: priceNum,
+        original: p.mrp || undefined,
+      },
+      inventory: {
+        inStock: p.in_stock !== false && p.available !== false,
+      },
+      delivery: {
+        eta: p.eta || p.delivery_time || 12,
+        etaText: `${p.eta || p.delivery_time || 12} mins`,
+      },
+      metadata: {
+        weight: quantity,
+      },
+      scrapedAt: new Date(),
     };
   }
 
@@ -180,15 +191,25 @@ export class BlinkitConnector implements Connector {
             imageIndex++;
 
             items.push({
+              platform: 'blinkit',
+              productId: Math.random().toString(36).substring(7),
               name,
               normalized_name: name.toLowerCase().replace(/[^a-z0-9\s]/g, '').trim(),
-              price,
-              currency: 'INR',
-              quantity,
-              platform: 'blinkit',
-              eta_minutes: eta,
-              in_stock: true,
-              image_url: imgSrc || undefined,
+              imageUrl: imgSrc || '',
+              price: {
+                current: price,
+              },
+              inventory: {
+                inStock: true,
+              },
+              delivery: {
+                eta: eta,
+                etaText: `${eta} mins`,
+              },
+              metadata: {
+                weight: quantity,
+              },
+              scrapedAt: new Date(),
             });
           }
         }

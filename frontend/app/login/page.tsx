@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { authApi } from '@/lib/api';
 import { useAuthStore } from '@/store';
+import { SPRING, MOTION_SPEEDS } from '@/lib/motion';
 
 export default function LoginPage() {
   const [isSignup, setIsSignup] = useState(false);
@@ -40,28 +41,37 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F9FAFB] flex items-center justify-center px-4">
+    <div className="min-h-screen bg-[#0A0B0D] flex items-center justify-center px-4 relative overflow-hidden">
+      {/* Ambient lightwells */}
+      <div className="absolute top-[-20%] left-[-10%] w-[60%] h-[60%] luxon-lightwell luxon-lightwell-violet animate-luxon-pulse" />
+      <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] luxon-lightwell luxon-lightwell-cyan animate-luxon-pulse" style={{ animationDelay: '-4s' }} />
+
       <motion.div
-        initial={{ opacity: 0, y: 12 }}
+        initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3 }}
-        className="w-full max-w-md"
+        transition={{ duration: MOTION_SPEEDS.cinematic.duration, ease: MOTION_SPEEDS.cinematic.ease }}
+        className="w-full max-w-md relative z-10"
       >
-        {/* Logo — clean, no gradient */}
+        {/* Logo */}
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-[#111827]">
+          <div className="inline-flex items-center gap-2.5 mb-4">
+            <div className="w-10 h-10 rounded-luxon-sm bg-gradient-to-br from-violet-500 to-cyan-500 flex items-center justify-center text-white text-lg font-bold shadow-lg shadow-violet-500/20">
+              O
+            </div>
+          </div>
+          <h1 className="text-3xl font-bold text-white font-heading">
             OmniCart
           </h1>
-          <p className="text-[#6B7280] mt-2 text-sm font-medium">
+          <p className="text-gray-500 mt-2 text-sm font-medium">
             {isSignup ? 'Create your account' : 'Welcome back'}
           </p>
         </div>
 
         {/* Form card */}
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8">
+        <div className="luxon-glass rounded-luxon-xl p-8">
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-[#111827] mb-1.5">
+              <label className="block text-sm font-medium text-gray-300 mb-1.5 font-heading">
                 Email
               </label>
               <input
@@ -70,13 +80,13 @@ export default function LoginPage() {
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@example.com"
                 required
-                className="w-full px-4 py-3 bg-[#F3F4F6] rounded-xl text-sm text-[#111827] placeholder-[#9CA3AF] focus:outline-none focus:ring-2 focus:ring-[#2563EB] transition-all duration-200"
+                className="w-full px-4 py-3 luxon-input rounded-luxon-sm text-sm"
                 id="email-input"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-[#111827] mb-1.5">
+              <label className="block text-sm font-medium text-gray-300 mb-1.5 font-heading">
                 Password
               </label>
               <input
@@ -86,16 +96,16 @@ export default function LoginPage() {
                 placeholder="••••••••"
                 required
                 minLength={6}
-                className="w-full px-4 py-3 bg-[#F3F4F6] rounded-xl text-sm text-[#111827] placeholder-[#9CA3AF] focus:outline-none focus:ring-2 focus:ring-[#2563EB] transition-all duration-200"
+                className="w-full px-4 py-3 luxon-input rounded-luxon-sm text-sm"
                 id="password-input"
               />
             </div>
 
             {error && (
               <motion.p
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="text-sm text-[#DC2626] bg-red-50 px-4 py-2 rounded-lg"
+                initial={{ opacity: 0, y: -4 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="text-sm text-red-400 bg-red-500/10 border border-red-500/20 px-4 py-2 rounded-luxon-sm"
               >
                 {error}
               </motion.p>
@@ -104,8 +114,9 @@ export default function LoginPage() {
             <motion.button
               type="submit"
               whileTap={{ scale: 0.98 }}
+              transition={SPRING.snappy}
               disabled={isLoading}
-              className="w-full py-3 bg-[#111827] text-white rounded-xl text-sm font-semibold hover:bg-[#1F2937] disabled:opacity-50 transition-all duration-200 shadow-sm active:scale-95"
+              className="w-full py-3 bg-gradient-to-r from-violet-600 to-violet-500 text-white rounded-luxon-md text-sm font-semibold hover:from-violet-500 hover:to-violet-400 disabled:opacity-50 transition-all duration-200 shadow-lg shadow-violet-500/20 font-heading"
               id="submit-button"
             >
               {isLoading ? (
@@ -127,7 +138,7 @@ export default function LoginPage() {
                 setIsSignup(!isSignup);
                 setError('');
               }}
-              className="text-sm text-[#6B7280] hover:text-[#111827] transition-all duration-200"
+              className="text-sm text-gray-500 hover:text-violet-400 transition-all duration-200"
             >
               {isSignup
                 ? 'Already have an account? Sign in'

@@ -3,6 +3,7 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { useCartStore } from '@/store';
 import { PlatformBadge } from './ProductCard';
+import { overlayVariants, drawerVariants, SPRING } from '@/lib/motion';
 
 interface CartDrawerProps {
   isOpen: boolean;
@@ -17,38 +18,39 @@ export function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
       {isOpen && (
         <>
           <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
+            variants={overlayVariants}
+            initial="hidden"
+            animate="visible"
+            exit="exit"
             onClick={onClose}
-            className="fixed inset-0 bg-black/20 backdrop-blur-sm z-50"
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50"
           />
 
           <motion.div
-            initial={{ x: '100%' }}
-            animate={{ x: 0 }}
-            exit={{ x: '100%' }}
-            transition={{ type: 'spring' as const, damping: 25, stiffness: 300 }}
-            className="fixed right-0 top-0 bottom-0 w-full sm:w-[420px] bg-white shadow-sm border-l border-gray-100 z-50 flex flex-col safe-bottom"
+            variants={drawerVariants}
+            initial="hidden"
+            animate="visible"
+            exit="exit"
+            className="fixed right-0 top-0 bottom-0 w-full sm:w-[420px] bg-[#0A0B0D]/95 backdrop-blur-2xl border-l border-white/5 z-50 flex flex-col safe-bottom"
           >
             {/* Header */}
-            <div className="flex items-center justify-between px-5 sm:px-6 py-4 border-b border-gray-100">
+            <div className="flex items-center justify-between px-5 sm:px-6 py-4 border-b border-white/5">
               <div>
-                <h2 className="text-lg font-bold text-[#111827] tracking-tight">Cart</h2>
-                <p className="text-xs text-[#9CA3AF] font-medium">{items.length} item{items.length !== 1 ? 's' : ''}</p>
+                <h2 className="text-lg font-bold text-white tracking-tight font-heading">Cart</h2>
+                <p className="text-xs text-gray-500 font-medium">{items.length} item{items.length !== 1 ? 's' : ''}</p>
               </div>
               <div className="flex items-center gap-2">
                 {items.length > 0 && (
                   <button
                     onClick={clearCart}
-                    className="text-xs font-semibold text-[#DC2626] hover:text-red-700 px-3 py-1.5 rounded-lg hover:bg-red-50 transition-all duration-200"
+                    className="text-xs font-semibold text-red-400 hover:text-red-300 px-3 py-1.5 rounded-luxon-sm hover:bg-red-500/10 transition-all duration-200"
                   >
                     Clear All
                   </button>
                 )}
                 <button
                   onClick={onClose}
-                  className="w-9 h-9 rounded-xl bg-[#F3F4F6] hover:bg-[#E5E7EB] flex items-center justify-center text-[#6B7280] transition-all duration-200 text-sm"
+                  className="w-9 h-9 rounded-luxon-sm bg-white/5 hover:bg-white/10 flex items-center justify-center text-gray-400 transition-all duration-200 text-sm border border-white/5"
                 >
                   ✕
                 </button>
@@ -59,45 +61,47 @@ export function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
             <div className="flex-1 overflow-y-auto px-5 sm:px-6 py-4">
               {items.length === 0 ? (
                 <div className="text-center py-16">
-                  <p className="text-[#111827] font-semibold">No items in cart</p>
-                  <p className="text-[#9CA3AF] text-sm mt-1">Add items from search results</p>
+                  <p className="text-white font-semibold font-heading">No items in cart</p>
+                  <p className="text-gray-500 text-sm mt-1">Add items from search results</p>
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {items.map((item) => (
+                  {items.map((item, i) => (
                     <motion.div
                       key={item.normalizedName}
                       layout
                       initial={{ opacity: 0, y: 8 }}
-                      animate={{ opacity: 1, y: 0 }}
+                      animate={{ opacity: 1, y: 0, transition: { delay: i * 0.05 } }}
                       exit={{ opacity: 0, x: 100 }}
-                      className="bg-[#F9FAFB] rounded-xl p-4 border border-gray-100"
+                      transition={SPRING.default}
+                      className="bg-white/[0.03] rounded-luxon-sm p-4 border border-white/5"
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0 flex-1">
-                          <p className="text-sm font-semibold text-[#111827] capitalize truncate">{item.name}</p>
+                          <p className="text-sm font-semibold text-white capitalize truncate">{item.name}</p>
                           <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-                            <PlatformBadge platform={item.selectedOption.platform} />
-                            <span className="text-[10px] text-[#9CA3AF] font-medium">
-                              {item.selectedOption.quantity || 'Standard'}
+                            <PlatformBadge platform={item.selectedOption.platform} isWinner />
+                            <span className="text-[10px] text-gray-500 font-medium">
+                              {item.selectedOption.metadata?.weight || 'Standard'}
                             </span>
                           </div>
                           <div className="flex items-center gap-2 mt-2">
-                            <span className="text-xs text-[#6B7280] flex items-center gap-1">
-                              <span className="w-1.5 h-1.5 rounded-full bg-[#16A34A] live-dot" />
-                              {item.selectedOption.eta_minutes} min
+                            <span className="text-xs text-gray-500 flex items-center gap-1">
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 live-dot" />
+                              {item.selectedOption.delivery.eta} min
                             </span>
                           </div>
                         </div>
-                        <div className="text-right shrink-0">
-                          {item.selectedOption.price > 0 ? (
-                            <p className="text-lg font-bold text-[#111827]">₹{item.selectedOption.price}</p>
+
+                        <div className="text-right ml-2 shrink-0">
+                          {item.selectedOption.price.current > 0 ? (
+                            <p className="text-lg font-bold text-white font-mono tabular-nums">₹{item.selectedOption.price.current}</p>
                           ) : (
-                            <p className="text-sm text-[#9CA3AF] font-medium">View price</p>
+                            <p className="text-sm text-gray-500 font-medium">View price</p>
                           )}
                           <button
                             onClick={() => removeItem(item.normalizedName)}
-                            className="text-[10px] font-semibold text-[#DC2626] hover:text-red-700 mt-1 transition-all duration-200"
+                            className="text-[10px] font-semibold text-red-400 hover:text-red-300 mt-1 transition-all duration-200"
                           >
                             Remove
                           </button>
@@ -111,12 +115,12 @@ export function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
 
             {/* Footer */}
             {items.length > 0 && (
-              <div className="border-t border-gray-100 px-5 sm:px-6 py-4 bg-white">
+              <div className="border-t border-white/5 px-5 sm:px-6 py-4 bg-[#0A0B0D]/80 backdrop-blur-xl">
                 <div className="flex items-center justify-between mb-3">
-                  <span className="text-sm font-semibold text-[#6B7280] uppercase tracking-wider">Total</span>
-                  <span className="text-2xl font-bold text-[#111827]">₹{totalCost()}</span>
+                  <span className="text-sm font-semibold text-gray-400 uppercase tracking-wider font-heading">Total</span>
+                  <span className="text-2xl font-bold text-white font-mono tabular-nums">₹{totalCost()}</span>
                 </div>
-                <p className="text-[10px] text-[#9CA3AF] text-center">
+                <p className="text-[10px] text-gray-600 text-center">
                   Final price at checkout on respective platform.
                 </p>
               </div>

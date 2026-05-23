@@ -4,6 +4,7 @@ import { APP_GUARD } from '@nestjs/core';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 
 import configuration from './config/configuration';
+import { validate } from './config/env.validation';
 import { PrismaModule } from './prisma.module';
 import { RedisModule } from './redis/redis.module';
 import { AuthModule } from './auth/auth.module';
@@ -18,12 +19,13 @@ import { RequestIdMiddleware } from './common/middleware/request-id.middleware';
 
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+import { LocationModule } from './location/location.module';
 
 /**
  * Root Application Module
  *
  * Wires together:
- * - ConfigModule (env + typed config)
+ * - ConfigModule (env + typed config + validation)
  * - ThrottlerModule (rate limiting per 13_SECURITY_SPEC.md)
  * - PrismaModule (database, global)
  * - RedisModule (caching, global)
@@ -41,10 +43,11 @@ import { AppService } from './app.service';
  */
 @Module({
   imports: [
-    // Configuration — load .env and typed config
+    // Configuration — load .env and typed config with strict schema validation
     ConfigModule.forRoot({
       isGlobal: true,
       load: [configuration],
+      validate,
     }),
 
     // Rate limiting — global 100 req/min per 06_API_CONTRACTS.md §12
@@ -69,6 +72,7 @@ import { AppService } from './app.service';
     RefillModule,
     BudgetModule,
     AlertsModule,
+    LocationModule,
   ],
   controllers: [AppController],
   providers: [

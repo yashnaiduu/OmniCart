@@ -4,31 +4,44 @@ import {
   ExecutionContext,
   CallHandler,
 } from '@nestjs/common';
-import { Observable, map } from 'rxjs';
-import { Request } from 'express';
-import { successResponse } from '../response';
+import { Observable } from 'rxjs';
+import { map } from 'rxjs/operators';
+import * as crypto from 'crypto';
 
-/**
- * Transform interceptor
- * Wraps ALL successful responses in the standard API response envelope
- * Per 06_API_CONTRACTS.md §2.3
- */
+export interface ApiSuccessResponse<T> {
+  success: true;
+  data: T;
+  message?: string;
+  metadata: {
+    timestamp: string;
+    requestId: string;
+  };
+}
+
 @Injectable()
-export class TransformInterceptor implements NestInterceptor {
-  intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
-    const request = context.switchToHttp().getRequest<Request>();
-    const requestId = (request.headers['x-request-id'] as string) || 'unknown';
-    const start = Date.now();
+export class TransformInterceptor<T>
+  implements NestInterceptor<T, ApiSuccessResponse<T>>
+{
+  intercept(
+    context: ExecutionContext,
+    next: CallHandler,
+  ): Observable<ApiSuccessResponse<T>> {
+    const request = context.switchToHttp().getRequest();
+
+    // Assign a request ID if not present
+    if (!request.id) {
+      request.id = crypto.randomUUID();
+    }
 
     return next.handle().pipe(
-      map((data) => {
-        // If response is already in API format, pass through
-        if (data && typeof data === 'object' && 'success' in data) {
-          return data;
-        }
-        const latencyMs = Date.now() - start;
-        return successResponse(data, requestId, latencyMs);
-      }),
+      map((data) => ({
+        success: true,
+        data,
+        metadata: {
+          timestamp: new Date().toISOString(),
+          requestId: request.id,
+        },
+      })),
     );
   }
 }

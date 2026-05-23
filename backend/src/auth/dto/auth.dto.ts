@@ -5,7 +5,7 @@ export class LoginDto {
   email: string;
 
   @IsString()
-  @Length(6, 100)
+  @Length(8, 100)
   password: string;
 }
 
@@ -14,11 +14,25 @@ export class SignupDto {
   email: string;
 
   @IsString()
-  @Length(6, 100)
+  @Length(8, 100)
   password: string;
 }
 
 export class RefreshTokenDto {
   @IsString()
   refresh_token: string;
+}
+
+export class ForgotPasswordDto {
+  @IsEmail()
+  email: string;
+}
+
+export class ResetPasswordDto {
+  @IsString()
+  token: string;
+
+  @IsString()
+  @Length(8, 100)
+  newPassword: string;
 }

@@ -98,16 +98,27 @@ export class ZeptoConnector implements Connector {
     const eta = p.delivery_time || p.eta || 8;
 
     return {
+      platform: 'zepto',
+      productId: p.id || p.product_id || Math.random().toString(36).substring(7),
       name,
       normalized_name: name.toLowerCase().replace(/[^a-z0-9\s]/g, '').trim(),
-      price: priceNum,
-      currency: 'INR',
-      quantity,
-      platform: 'zepto',
-      eta_minutes: eta,
-      in_stock: p.in_stock !== false && p.available !== false && p.out_of_stock !== true,
-      image_url: imageUrl || undefined,
-      product_url: p.product_url || p.slug ? `https://www.zepto.com${p.slug || ''}` : undefined,
+      imageUrl,
+      productUrl: p.product_url || p.slug ? `https://www.zepto.com${p.slug || ''}` : undefined,
+      price: {
+        current: priceNum,
+        original: p.mrp || undefined,
+      },
+      inventory: {
+        inStock: p.in_stock !== false && p.available !== false && p.out_of_stock !== true,
+      },
+      delivery: {
+        eta: eta,
+        etaText: `${eta} mins`,
+      },
+      metadata: {
+        weight: quantity,
+      },
+      scrapedAt: new Date(),
     };
   }
 
@@ -194,15 +205,25 @@ export class ZeptoConnector implements Connector {
             imageIndex++;
 
             items.push({
+              platform: 'zepto',
+              productId: Math.random().toString(36).substring(7),
               name,
               normalized_name: name.toLowerCase().replace(/[^a-z0-9\s]/g, '').trim(),
-              price,
-              currency: 'INR',
-              quantity,
-              platform: 'zepto',
-              eta_minutes: 8,
-              in_stock: true,
-              image_url: imgSrc || undefined,
+              imageUrl: imgSrc || '',
+              price: {
+                current: price,
+              },
+              inventory: {
+                inStock: true,
+              },
+              delivery: {
+                eta: 8,
+                etaText: '8 mins',
+              },
+              metadata: {
+                weight: quantity,
+              },
+              scrapedAt: new Date(),
             });
           }
         }

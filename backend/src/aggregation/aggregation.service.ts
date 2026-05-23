@@ -4,6 +4,7 @@ import CircuitBreaker from 'opossum';
 import { REDIS_CLIENT } from '../redis/redis.module';
 import { CONNECTORS } from '../connectors/connectors.module';
 import { Connector, Product } from '../connectors/connector.interface';
+import { SearchDto } from '../search/dto/search.dto';
 
 /**
  * Aggregation Service — CRITICAL CORE
@@ -48,7 +49,7 @@ export class AggregationService {
         (query: string, lat: number, lng: number) =>
           connector.search(query, lat, lng),
         {
-          timeout: 30000, // 30s per connector — headless Chrome cold start + image loading needs time
+          timeout: 12000, // 12s hard timeout — drop slow platforms rather than block the user
           errorThresholdPercentage: 50, // Open circuit at 50% failure rate
           resetTimeout: 60000, // Try again after 1 minute
           volumeThreshold: 5,
@@ -72,13 +73,20 @@ export class AggregationService {
   /**
    * Main aggregation flow per 04_BACKEND_SPEC.md
    */
-  async aggregate(
-    query: string,
-    pincode: string,
-    mode: 'cheapest' | 'fastest' | 'balanced' = 'balanced',
-  ): Promise<AggregationResult> {
-    const { lat, lng } = this.pincodeToCoords(pincode);
-    const cacheKey = `search:${query.toLowerCase().trim()}:${pincode}`;
+  async aggregate(dto: SearchDto): Promise<AggregationResult> {
+    const { query, pincode, mode = 'balanced', latitude, longitude, city } = dto;
+    let lat = latitude;
+    let lng = longitude;
+
+    // Fallback to pincode if exact coordinates aren't provided
+    if (!lat || !lng) {
+      const coords = this.pincodeToCoords(pincode || '560067');
+      lat = coords.lat;
+      lng = coords.lng;
+    }
+
+    const locString = city || pincode || `${lat},${lng}`;
+    const cacheKey = `search:${query.toLowerCase().trim()}:${locString}`;
 
     // 1. Check cache first (cache-first design)
     try {
@@ -181,8 +189,8 @@ export class AggregationService {
   ): { platform: string; reason: string } | null {
     if (options.length === 0) return null;
 
-    const prices = options.map((o) => o.price);
-    const etas = options.map((o) => o.eta_minutes);
+    const prices = options.map((o) => o.price.current);
+    const etas = options.map((o) => o.delivery.eta);
     const maxPrice = Math.max(...prices);
     const maxEta = Math.max(...etas);
 
@@ -191,8 +199,8 @@ export class AggregationService {
 
     for (const option of options) {
       // Normalize so lower is better → invert the score
-      const priceScore = maxPrice > 0 ? (1 - option.price / maxPrice) * 100 : 0;
-      const etaScore = maxEta > 0 ? (1 - option.eta_minutes / maxEta) * 100 : 0;
+      const priceScore = maxPrice > 0 ? (1 - option.price.current / maxPrice) * 100 : 0;
+      const etaScore = maxEta > 0 ? (1 - option.delivery.eta / maxEta) * 100 : 0;
 
       const score = weights.price * priceScore + weights.eta * etaScore;
 

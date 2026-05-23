@@ -4,58 +4,88 @@ import {
   ArgumentsHost,
   HttpException,
   HttpStatus,
-  Logger,
 } from '@nestjs/common';
 import { Request, Response } from 'express';
-import { errorResponse } from '../response';
+import * as crypto from 'crypto';
 
-/**
- * Global exception filter
- * Ensures ALL errors conform to the API response contract (06_API_CONTRACTS.md §2.4)
- */
+export interface ApiErrorResponse {
+  success: false;
+  error: {
+    code: string;
+    message: string;
+    details?: any;
+  };
+  metadata: {
+    timestamp: string;
+    requestId: string;
+  };
+}
+
 @Catch()
 export class GlobalExceptionFilter implements ExceptionFilter {
-  private readonly logger = new Logger(GlobalExceptionFilter.name);
-
   catch(exception: unknown, host: ArgumentsHost) {
     const ctx = host.switchToHttp();
     const response = ctx.getResponse<Response>();
     const request = ctx.getRequest<Request>();
-    const requestId = (request.headers['x-request-id'] as string) || 'unknown';
 
-    let status = HttpStatus.INTERNAL_SERVER_ERROR;
-    let code = 'INTERNAL_ERROR';
-    let message = 'An unexpected error occurred';
+    const status =
+      exception instanceof HttpException
+        ? exception.getStatus()
+        : HttpStatus.INTERNAL_SERVER_ERROR;
 
-    if (exception instanceof HttpException) {
-      status = exception.getStatus();
-      const exceptionResponse = exception.getResponse();
+    const errorResponse: ApiErrorResponse = {
+      success: false,
+      error: {
+        code: this.getErrorCode(exception),
+        message: this.getErrorMessage(exception),
+        details: this.getErrorDetails(exception),
+      },
+      metadata: {
+        timestamp: new Date().toISOString(),
+        requestId: (request as any).id || crypto.randomUUID(),
+      },
+    };
 
-      if (typeof exceptionResponse === 'string') {
-        message = exceptionResponse;
-      } else if (typeof exceptionResponse === 'object') {
-        const res = exceptionResponse as Record<string, any>;
-        message = res.message
-          ? Array.isArray(res.message)
-            ? res.message.join(', ')
-            : res.message
-          : message;
-        code = res.error || code;
-      }
-
-      // Map HTTP status to error codes
-      if (status === 400) code = 'INVALID_INPUT';
-      if (status === 401) code = 'UNAUTHORIZED';
-      if (status === 403) code = 'FORBIDDEN';
-      if (status === 404) code = 'NOT_FOUND';
-      if (status === 429) code = 'RATE_LIMITED';
+    // Prevent exposing internal errors in production unless needed
+    if (status === HttpStatus.INTERNAL_SERVER_ERROR) {
+      console.error('Unhandled Exception:', exception);
     }
 
-    this.logger.error(
-      `[${requestId}] ${request.method} ${request.url} → ${status} ${code}: ${message}`,
-      exception instanceof Error ? exception.stack : undefined,
-    );
+    response.status(status).json(errorResponse);
+  }
 
-    response.status(status).json(errorResponse(code, message, requestId));
+  private getErrorCode(exception: unknown): string {
+    if (exception instanceof HttpException) {
+      const status = exception.getStatus();
+      if (status === 400) return 'VALIDATION_ERROR';
+      if (status === 401) return 'AUTH_ERROR';
+      if (status === 403) return 'FORBIDDEN';
+      if (status === 404) return 'NOT_FOUND';
+      if (status === 409) return 'CONFLICT';
+      if (status === 429) return 'RATE_LIMIT';
+      return 'API_ERROR';
+    }
+    return 'INTERNAL_SERVER_ERROR';
+  }
+
+  private getErrorMessage(exception: unknown): string {
+    if (exception instanceof HttpException) {
+      const response = exception.getResponse();
+      if (typeof response === 'object' && response !== null) {
+        return (response as any).message || exception.message;
+      }
+      return exception.message;
+    }
+    return 'An unexpected error occurred';
+  }
+
+  private getErrorDetails(exception: unknown): any {
+    if (exception instanceof HttpException) {
+      const response = exception.getResponse();
+      if (typeof response === 'object' && response !== null && (response as any).error) {
+        return (response as any).error;
+      }
+    }
+    return undefined;
   }
 }

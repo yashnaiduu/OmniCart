@@ -51,7 +51,11 @@ export class RefillService {
     const searchQuery = itemNames.join(' ');
 
     // 3. Re-run aggregation for fresh live prices
-    const aggregationResult = await this.aggregation.aggregate(searchQuery, pincode, mode);
+    const aggregationResult = await this.aggregation.aggregate({
+      query: searchQuery,
+      pincode: pincode,
+      mode: mode as any,
+    });
 
     // 4. Get co-purchase suggestions
     const suggestions = this.aiEngine.getSuggestionsForItems(itemNames);

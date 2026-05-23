@@ -1,4 +1,4 @@
-import { IsString, Length, IsEnum, IsOptional, Matches } from 'class-validator';
+import { IsString, Length, IsEnum, IsOptional, Matches, IsNumber } from 'class-validator';
 
 /**
  * Search DTO per 06_API_CONTRACTS.md §4
@@ -14,9 +14,21 @@ export class SearchDto {
   @Length(1, 200)
   query: string;
 
+  @IsOptional()
+  @IsNumber()
+  latitude?: number;
+
+  @IsOptional()
+  @IsNumber()
+  longitude?: number;
+
+  @IsOptional()
   @IsString()
-  @Matches(/^\d{6}$/, { message: 'Pincode must be exactly 6 digits' })
-  pincode: string;
+  city?: string;
+
+  @IsOptional()
+  @IsString()
+  pincode?: string; // Keep for backward compatibility or specific scrapers
 
   @IsOptional()
   @IsEnum(SearchMode)

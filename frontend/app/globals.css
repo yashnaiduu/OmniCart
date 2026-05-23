@@ -1,42 +1,67 @@
 @import "tailwindcss";
 
 @theme {
-  /* ── STRICT APPLE DESIGN TOKENS (per design.md) ── */
-
-  /* Backgrounds */
-  --color-bg-primary: #F9FAFB;         /* Very light gray — NOT pure white */
-  --color-bg-card: #FFFFFF;            /* Cards, sections */
-  --color-bg-elevated: #F3F4F6;        /* Hover / active surfaces */
-
-  /* Text */
-  --color-text-primary: #111827;        /* Deep gray — NOT pure black */
-  --color-text-secondary: #6B7280;      /* Subtle gray */
-  --color-text-muted: #9CA3AF;          /* Low emphasis */
-
-  /* Accent */
-  --color-accent: #2563EB;              /* Apple-like blue */
-  --color-accent-hover: #1D4ED8;        /* Darker blue on hover */
-
-  /* Semantic */
-  --color-success: #16A34A;             /* ADD buttons, positive actions */
-  --color-error: #DC2626;               /* Errors — use sparingly */
-
-  /* Borders */
-  --color-border: #E5E7EB;
-  --color-border-light: #F3F4F6;
-
-  /* Platform text colors — muted, used in small labels ONLY */
-  --color-platform-blinkit: #92400E;
-  --color-platform-zepto: #6D28D9;
-  --color-platform-instamart: #C2410C;
-  --color-platform-bigbasket: #4D7C0F;
-  --color-platform-amazon: #0369A1;
+  /* ── LUXON v2 (Aether UI) THEME TOKENS ── */
 
   /* Typography */
-  --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-sans: var(--font-sans), 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --font-heading: var(--font-heading), 'Space Grotesk', sans-serif;
+  --font-mono: var(--font-mono), 'JetBrains Mono', monospace;
+
+  /* Spacing Base: 12px system */
+  --spacing-luxon: 12px;
+
+  /* ── OBSIDIAN CANVAS ── */
+  --color-obsidian: #0A0B0D;
+  --color-obsidian-mid: #0F1115;
+  --color-obsidian-surface: #12141A;
+  --color-obsidian-elevated: #1A1D26;
+
+  /* ── GLASS MATERIALS ── */
+  --color-glass: rgba(18, 20, 26, 0.6);
+  --color-glass-hover: rgba(26, 29, 38, 0.8);
+  --color-glass-border: rgba(255, 255, 255, 0.08);
+  --color-glass-border-hover: rgba(255, 255, 255, 0.15);
+
+  /* ── BRAND ACCENTS ── */
+  --color-violet: #8B5CF6;
+  --color-violet-glow: rgba(139, 92, 246, 0.15);
+  --color-cyan: #06B6D4;
+  --color-cyan-glow: rgba(6, 182, 212, 0.15);
+  --color-amber: #F59E0B;
+  --color-amber-glow: rgba(245, 158, 11, 0.12);
+
+  /* ── FUNCTIONAL COLORS ── */
+  --color-success: #10B981;
+  --color-success-glow: rgba(16, 185, 129, 0.15);
+  --color-error: #EF4444;
+  --color-info: #3B82F6;
+
+  /* ── TEXT ── */
+  --color-text-primary: #EEF2F6;
+  --color-text-secondary: #94A3B8;
+  --color-text-muted: #64748B;
+
+  /* ── PLATFORM MUTED COLORS ── */
+  --color-platform-swiggy: #FC8019;
+  --color-platform-blinkit: #F8CB46;
+  --color-platform-zepto: #8B4CFC;
+  --color-platform-bigbasket: #84C225;
+  --color-platform-amazon: #FF9900;
+
+  /* ── ASYMMETRICAL BI-RADII (Alternating corners) ── */
+  --radius-luxon-xl: 32px 12px 32px 12px;
+  --radius-luxon-lg: 24px 8px 24px 8px;
+  --radius-luxon-md: 16px 6px 16px 6px;
+  --radius-luxon-sm: 12px 4px 12px 4px;
+
+  /* ── ANIMATIONS ── */
+  --animate-luxon-pulse: luxon-pulse 8s ease-in-out infinite alternate;
+  --animate-luxon-breathe: luxon-breathe 3s ease-in-out infinite;
+  --animate-laser-slide: laser-slide 2.5s ease-in-out infinite;
 }
 
-/* ── BASE ── */
+/* ── BASE LAYER ── */
 html {
   scroll-behavior: smooth;
   -webkit-tap-highlight-color: transparent;
@@ -44,43 +69,150 @@ html {
 
 body {
   font-family: var(--font-sans);
-  background: var(--color-bg-primary);
+  background: var(--color-obsidian);
   color: var(--color-text-primary);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   overscroll-behavior-y: none;
 }
 
-/* ── CARDS — per design.md: bg-white shadow-sm → hover:shadow-md ── */
-.soft-card {
-  background: var(--color-bg-card);
-  border-radius: 16px;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 1px 3px rgba(0, 0, 0, 0.03);
-  transition: box-shadow 0.2s ease-in-out;
+/* Noise texture overlay for "polished volcanic glass" feel */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.025;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 256px 256px;
 }
 
-.soft-card:hover {
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.04);
+/* ── KEYFRAMES ── */
+@keyframes luxon-pulse {
+  0% { transform: scale(1) translate(0px, 0px); opacity: 0.6; }
+  50% { transform: scale(1.15) translate(20px, -15px); opacity: 1; }
+  100% { transform: scale(0.9) translate(-10px, 10px); opacity: 0.6; }
 }
 
-/* ── SKELETON LOADER ── */
-@keyframes shimmer {
+@keyframes luxon-breathe {
+  0%, 100% {
+    box-shadow: 0 0 20px var(--color-violet-glow), 0 0 60px var(--color-violet-glow);
+  }
+  50% {
+    box-shadow: 0 0 30px rgba(139, 92, 246, 0.3), 0 0 80px rgba(139, 92, 246, 0.2);
+  }
+}
+
+@keyframes laser-slide {
+  0% { transform: translateY(-100%); opacity: 0; }
+  20% { opacity: 1; }
+  80% { opacity: 1; }
+  100% { transform: translateY(300%); opacity: 0; }
+}
+
+@keyframes shimmer-dark {
   0% { background-position: -200% 0; }
   100% { background-position: 200% 0; }
 }
 
-.skeleton {
-  background: linear-gradient(90deg, #F3F4F6 25%, #E5E7EB 50%, #F3F4F6 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.5s infinite ease-in-out;
-  border-radius: 12px;
+/* ── GLASS MATERIAL ── */
+.luxon-glass {
+  background: var(--color-glass);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid var(--color-glass-border);
+  box-shadow:
+    0 1px 0 0 rgba(255, 255, 255, 0.04) inset,
+    0 8px 32px -8px rgba(0, 0, 0, 0.5);
+  transition: all 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
 
-/* ── SCROLLBAR — subtle ── */
+.luxon-glass:hover {
+  background: var(--color-glass-hover);
+  border-color: var(--color-glass-border-hover);
+  box-shadow:
+    0 1px 0 0 rgba(255, 255, 255, 0.06) inset,
+    0 12px 40px -4px rgba(0, 0, 0, 0.6);
+}
+
+/* Bi-radii utility classes */
+.rounded-luxon-xl { border-radius: 32px 12px 32px 12px; }
+.rounded-luxon-lg { border-radius: 24px 8px 24px 8px; }
+.rounded-luxon-md { border-radius: 16px 6px 16px 6px; }
+.rounded-luxon-sm { border-radius: 12px 4px 12px 4px; }
+
+/* ── LIGHTWELL EMITTERS ── */
+.luxon-lightwell {
+  position: absolute;
+  border-radius: 9999px;
+  filter: blur(140px);
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.6;
+}
+
+.luxon-lightwell-violet {
+  background: radial-gradient(circle, rgba(139, 92, 246, 0.2) 0%, transparent 70%);
+}
+
+.luxon-lightwell-cyan {
+  background: radial-gradient(circle, rgba(6, 182, 212, 0.18) 0%, transparent 70%);
+}
+
+.luxon-lightwell-emerald {
+  background: radial-gradient(circle, rgba(16, 185, 129, 0.15) 0%, transparent 70%);
+}
+
+.luxon-lightwell-amber {
+  background: radial-gradient(circle, rgba(245, 158, 11, 0.12) 0%, transparent 70%);
+}
+
+/* ── KINETIC DIVIDER ── */
+.luxon-divider {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.08) 50%, transparent);
+}
+
+/* ── DARK SKELETON SHIMMER ── */
+.skeleton-dark {
+  background: linear-gradient(90deg, #12141A 25%, #1E2030 50%, #12141A 75%);
+  background-size: 200% 100%;
+  animation: shimmer-dark 1.5s infinite ease-in-out;
+}
+
+/* Legacy light skeleton (kept for backward compat) */
+.skeleton {
+  background: linear-gradient(90deg, #12141A 25%, #1E2030 50%, #12141A 75%);
+  background-size: 200% 100%;
+  animation: shimmer-dark 1.5s infinite ease-in-out;
+}
+
+/* ── INPUT LASER FOCUS ── */
+.luxon-input {
+  position: relative;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: var(--color-text-primary);
+  transition: all 0.2s ease;
+}
+
+.luxon-input:focus {
+  outline: none;
+  border-color: rgba(139, 92, 246, 0.4);
+  box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.15), 0 0 0 6px rgba(6, 182, 212, 0.05);
+}
+
+.luxon-input::placeholder {
+  color: var(--color-text-muted);
+}
+
+/* ── SCROLLBAR ── */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: #E5E7EB; border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: #D1D5DB; }
+::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.1); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.2); }
 
 /* ── MOBILE TOUCH TARGETS ── */
 @media (max-width: 640px) {
@@ -104,11 +236,35 @@ body {
   animation: live-pulse 2s ease-in-out infinite;
 }
 
-/* ── SCROLLBAR HIDE (for horizontal sections) ── */
+/* ── SCROLLBAR HIDE ── */
 .scrollbar-hide {
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
 .scrollbar-hide::-webkit-scrollbar {
   display: none;
+}
+
+/* ── ACCESSIBILITY: REDUCED MOTION ── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  .luxon-lightwell {
+    display: none;
+  }
+
+  body::before {
+    display: none;
+  }
+}
+
+/* ── FOCUS INDICATORS (WCAG) ── */
+:focus-visible {
+  outline: 3px solid var(--color-cyan);
+  outline-offset: 4px;
+  border-radius: 4px;
 }

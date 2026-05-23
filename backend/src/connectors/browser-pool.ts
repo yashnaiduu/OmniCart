@@ -94,7 +94,7 @@ export async function getStealthPage(
   // Block unnecessary resources to speed up page loads
   await page.route('**/*', (route: Route) => {
     const type = route.request().resourceType();
-    if (['stylesheet', 'font', 'media'].includes(type)) {
+    if (['image', 'stylesheet', 'font', 'media', 'other'].includes(type)) {
       route.abort();
     } else {
       route.continue();
@@ -107,18 +107,25 @@ export async function getStealthPage(
 /**
  * Intercept API responses matching a URL pattern.
  * Returns a promise that resolves with the first matching JSON response body.
+ * Resolves with null on timeout (does NOT reject — prevents unhandled crashes).
  */
 export function interceptApiResponse(
   page: Page,
   urlPattern: string | RegExp,
   timeoutMs = 15000,
-): Promise<any> {
-  return new Promise((resolve, reject) => {
+): Promise<any | null> {
+  return new Promise((resolve) => {
+    let resolved = false;
+
     const timer = setTimeout(() => {
-      reject(new Error(`API interception timed out after ${timeoutMs}ms for pattern: ${urlPattern}`));
+      if (!resolved) {
+        resolved = true;
+        resolve(null);
+      }
     }, timeoutMs);
 
     page.on('response', async (response) => {
+      if (resolved) return;
       try {
         const url = response.url();
         const matches =
@@ -130,8 +137,11 @@ export function interceptApiResponse(
           const contentType = response.headers()['content-type'] || '';
           if (contentType.includes('json')) {
             clearTimeout(timer);
-            const body = await response.json();
-            resolve(body);
+            if (!resolved) {
+              resolved = true;
+              const body = await response.json();
+              resolve(body);
+            }
           }
         }
       } catch {
@@ -193,8 +203,8 @@ export async function scrapePage<T>(
     context = result.context;
     const page = result.page;
 
-    await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 20000 });
-    await page.waitForTimeout(waitMs);
+    await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 20000 }).catch(() => null);
+    await page.waitForTimeout(1000); // Only a small delay for dom fallback
     const data = await evaluator(page);
     return data;
   } catch (err: any) {
@@ -208,44 +218,93 @@ export async function scrapePage<T>(
 }
 
 /**
- * Advanced scrape: navigate with API interception + DOM evaluator fallback
+ * Advanced scrape: navigate with API interception + DOM evaluator fallback.
+ * Falls back to DOM if:
+ * - API interception times out (returns null)
+ * - API transformer returns empty array
+ * - Any error occurs
  */
 export async function scrapeWithApiInterception<T>(
   url: string,
   apiPattern: string | RegExp,
   apiTransformer: (apiData: any) => T,
   domFallback: (page: Page) => Promise<T>,
-  waitMs = 8000,
+  waitMs = 2500,
   lat?: number,
   lng?: number,
 ): Promise<T | null> {
-  let context: BrowserContext | null = null;
-  try {
-    const { page, context: ctx } = await getStealthPage(lat, lng);
-    context = ctx;
+  let attempt = 0;
+  const maxRetries = 1; // Reduce retries to speed up failures
 
-    // Start listening before navigation
-    const apiPromise = interceptApiResponse(page, apiPattern, waitMs + 5000);
-
-    await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 20000 });
-    await page.waitForTimeout(waitMs);
-
-    // Try API interception first
+  while (attempt <= maxRetries) {
+    let context: BrowserContext | null = null;
     try {
+      const { page, context: ctx } = await getStealthPage(lat, lng);
+      context = ctx;
+
+      // Inject cookies for platforms that block based on location
+      if (url.includes('swiggy.com')) {
+        const swiggyLocation = { lat: lat || 13.0827, lng: lng || 80.2707, address: 'India', city: 'Chennai' };
+        await context.addCookies([
+          { name: 'userLocation', value: encodeURIComponent(JSON.stringify(swiggyLocation)), domain: '.swiggy.com', path: '/' },
+          { name: 'lat', value: String(swiggyLocation.lat), domain: '.swiggy.com', path: '/' },
+          { name: 'lng', value: String(swiggyLocation.lng), domain: '.swiggy.com', path: '/' }
+        ]);
+      }
+
+      // Start listening before navigation with the full timeout
+      const apiPromise = interceptApiResponse(page, apiPattern, waitMs)
+        .catch(() => null); // Safety net — never reject
+
+      // Navigate and wait for DOM, but don't crash on timeout
+      await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 6000 }).catch(() => null);
+
+      // Try API interception first. Will resolve instantly if the API call completes!
       const apiData = await apiPromise;
-      logger.log(`API interception succeeded for pattern: ${apiPattern}`);
-      return apiTransformer(apiData);
-    } catch {
-      // API interception failed/timed out — fall back to DOM
-      logger.warn(`API interception failed for ${apiPattern}, falling back to DOM scraping`);
-      return await domFallback(page);
-    }
-  } catch (err: any) {
-    logger.error(`scrapeWithApiInterception failed for ${url}: ${err.message}`);
-    return null;
-  } finally {
-    if (context) {
-      try { await context.close(); } catch { /* ignore */ }
+
+      if (apiData) {
+        try {
+          const result = apiTransformer(apiData);
+          const isEmpty = Array.isArray(result) ? result.length === 0 : !result;
+          if (!isEmpty) {
+            logger.log(`API interception succeeded for pattern: ${apiPattern} (attempt ${attempt + 1})`);
+            return result;
+          }
+          logger.warn(`API interception returned empty for ${apiPattern}, falling back to DOM`);
+        } catch (err: any) {
+          logger.warn(`API transformer failed: ${err.message}, falling back to DOM`);
+        }
+      } else {
+        logger.warn(`API interception timed out for ${apiPattern}, falling back to DOM`);
+      }
+
+      // DOM fallback
+      const domResult = await domFallback(page);
+      const isDomEmpty = Array.isArray(domResult) ? domResult.length === 0 : !domResult;
+      
+      if (!isDomEmpty) {
+        return domResult;
+      }
+      
+      throw new Error('Both API and DOM extraction yielded empty results');
+
+    } catch (err: any) {
+      attempt++;
+      logger.error(`scrapeWithApiInterception attempt ${attempt} failed for ${url}: ${err.message}`);
+      
+      if (attempt <= maxRetries) {
+        const backoffMs = Math.pow(2, attempt) * 1000 + Math.random() * 1000;
+        logger.log(`Retrying in ${Math.round(backoffMs)}ms...`);
+        await new Promise(res => setTimeout(res, backoffMs));
+      } else {
+        return null;
+      }
+    } finally {
+      if (context) {
+        try { await context.close(); } catch { /* ignore */ }
+      }
     }
   }
+  return null;
 }
+

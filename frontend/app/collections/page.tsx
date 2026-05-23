@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Navbar } from '@/components/Navbar';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { collectionsApi, Collection } from '@/lib/api';
+import { SPRING, staggerContainer, staggerItem } from '@/lib/motion';
 
 export default function CollectionsPage() {
   const queryClient = useQueryClient();
@@ -54,16 +55,17 @@ export default function CollectionsPage() {
   });
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-blue-50/40 via-white to-white">
+    <div className="min-h-screen bg-[#0A0B0D] text-[#EEF2F6]">
       <Navbar />
 
       <main className="max-w-3xl mx-auto px-4 sm:px-6 py-8 pb-24 sm:pb-8">
         <div className="flex items-center justify-between mb-6">
-          <h1 className="text-2xl font-bold text-gray-900">📋 My Lists</h1>
+          <h1 className="text-2xl font-bold text-white font-heading">My Lists</h1>
           <motion.button
             whileTap={{ scale: 0.95 }}
+            transition={SPRING.snappy}
             onClick={() => setShowCreate(!showCreate)}
-            className="px-4 py-2 bg-blue-500 text-white rounded-xl text-sm font-medium hover:bg-blue-600 transition-colors"
+            className="px-4 py-2 bg-violet-600 text-white rounded-luxon-sm text-sm font-medium hover:bg-violet-500 transition-colors font-heading shadow-lg shadow-violet-500/20"
           >
             + New List
           </motion.button>
@@ -78,25 +80,25 @@ export default function CollectionsPage() {
               exit={{ opacity: 0, height: 0 }}
               className="mb-6"
             >
-              <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm">
+              <div className="luxon-glass rounded-luxon-lg p-5">
                 <input
                   type="text"
                   value={newName}
                   onChange={(e) => setNewName(e.target.value)}
                   placeholder="List name (e.g. Monthly Groceries)"
-                  className="w-full px-4 py-3 bg-gray-50 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-4 py-3 luxon-input rounded-luxon-sm text-sm"
                 />
                 <div className="flex gap-2 mt-3">
                   <button
                     onClick={() => newName.trim() && createMutation.mutate(newName.trim())}
                     disabled={!newName.trim() || createMutation.isPending}
-                    className="px-4 py-2 bg-blue-500 text-white rounded-xl text-sm font-medium hover:bg-blue-600 disabled:opacity-50 transition-colors"
+                    className="px-4 py-2 bg-violet-600 text-white rounded-luxon-sm text-sm font-medium hover:bg-violet-500 disabled:opacity-50 transition-colors font-heading"
                   >
                     {createMutation.isPending ? 'Creating...' : 'Create'}
                   </button>
                   <button
                     onClick={() => setShowCreate(false)}
-                    className="px-4 py-2 bg-gray-100 text-gray-600 rounded-xl text-sm font-medium hover:bg-gray-200 transition-colors"
+                    className="px-4 py-2 bg-white/5 text-gray-400 rounded-luxon-sm text-sm font-medium hover:bg-white/10 transition-colors"
                   >
                     Cancel
                   </button>
@@ -110,28 +112,30 @@ export default function CollectionsPage() {
         {isLoading ? (
           <div className="space-y-4">
             {[1, 2, 3].map((i) => (
-              <div key={i} className="bg-white rounded-2xl border border-gray-100 p-5">
-                <div className="skeleton h-5 w-40 mb-3" />
-                <div className="skeleton h-3 w-24" />
+              <div key={i} className="luxon-glass rounded-luxon-lg p-5">
+                <div className="skeleton-dark h-5 w-40 mb-3 rounded-luxon-sm" />
+                <div className="skeleton-dark h-3 w-24 rounded-luxon-sm" />
               </div>
             ))}
           </div>
         ) : collections && collections.length > 0 ? (
           <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
+            variants={staggerContainer}
+            initial="hidden"
+            animate="show"
             className="space-y-4"
           >
             {collections.map((col) => (
               <motion.div
                 key={col.id}
+                variants={staggerItem}
                 layout
-                className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm"
+                className="luxon-glass rounded-luxon-lg p-5"
               >
                 <div className="flex items-center justify-between mb-3">
                   <div>
-                    <h3 className="font-semibold text-gray-900">{col.name}</h3>
-                    <p className="text-xs text-gray-400">
+                    <h3 className="font-semibold text-white font-heading">{col.name}</h3>
+                    <p className="text-xs text-gray-500">
                       {col.items?.length || 0} items
                       {col.frequency && ` · ${col.frequency}`}
                     </p>
@@ -139,13 +143,13 @@ export default function CollectionsPage() {
                   <div className="flex gap-2">
                     <button
                       onClick={() => setAddingItemTo(addingItemTo === col.id ? null : col.id)}
-                      className="text-xs text-blue-600 hover:text-blue-700 px-2 py-1 rounded-lg hover:bg-blue-50 transition-colors"
+                      className="text-xs text-violet-400 hover:text-violet-300 px-2 py-1 rounded-luxon-sm hover:bg-violet-500/10 transition-colors font-heading"
                     >
                       + Add Item
                     </button>
                     <button
                       onClick={() => deleteCollectionMutation.mutate(col.id)}
-                      className="text-xs text-red-500 hover:text-red-600 px-2 py-1 rounded-lg hover:bg-red-50 transition-colors"
+                      className="text-xs text-red-400 hover:text-red-300 px-2 py-1 rounded-luxon-sm hover:bg-red-500/10 transition-colors"
                     >
                       Delete
                     </button>
@@ -167,14 +171,14 @@ export default function CollectionsPage() {
                           value={newItemName}
                           onChange={(e) => setNewItemName(e.target.value)}
                           placeholder="Item name"
-                          className="flex-1 px-3 py-2 bg-gray-50 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          className="flex-1 px-3 py-2 luxon-input rounded-luxon-sm text-sm"
                         />
                         <input
                           type="text"
                           value={newItemQty}
                           onChange={(e) => setNewItemQty(e.target.value)}
                           placeholder="Qty"
-                          className="w-20 px-3 py-2 bg-gray-50 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          className="w-20 px-3 py-2 luxon-input rounded-luxon-sm text-sm"
                         />
                         <button
                           onClick={() =>
@@ -186,7 +190,7 @@ export default function CollectionsPage() {
                             })
                           }
                           disabled={!newItemName.trim()}
-                          className="px-3 py-2 bg-blue-500 text-white rounded-lg text-sm font-medium disabled:opacity-50"
+                          className="px-3 py-2 bg-violet-600 text-white rounded-luxon-sm text-sm font-medium disabled:opacity-50 font-heading"
                         >
                           Add
                         </button>
@@ -201,14 +205,14 @@ export default function CollectionsPage() {
                     {col.items.map((item) => (
                       <div
                         key={item.id}
-                        className="flex items-center justify-between px-3 py-2 rounded-lg hover:bg-gray-50 transition-colors group"
+                        className="flex items-center justify-between px-3 py-2 rounded-luxon-sm hover:bg-white/5 transition-colors group"
                       >
                         <div className="flex items-center gap-2">
-                          <span className="text-sm text-gray-700 capitalize">
+                          <span className="text-sm text-gray-300 capitalize">
                             {item.name}
                           </span>
                           {item.quantity && (
-                            <span className="text-xs text-gray-400">
+                            <span className="text-xs text-gray-600">
                               ({item.quantity})
                             </span>
                           )}
@@ -237,9 +241,8 @@ export default function CollectionsPage() {
             animate={{ opacity: 1 }}
             className="text-center py-16"
           >
-            <p className="text-5xl mb-4">📋</p>
-            <p className="text-gray-500 text-lg">No lists yet</p>
-            <p className="text-gray-400 text-sm mt-2">
+            <p className="text-gray-500 text-lg font-heading">No lists yet</p>
+            <p className="text-gray-600 text-sm mt-2">
               Create your first grocery list to get started
             </p>
           </motion.div>

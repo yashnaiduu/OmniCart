@@ -17,7 +17,7 @@ export class SearchController {
   @Public()
   @Post()
   async search(@Body() dto: SearchDto) {
-    return this.searchService.search(dto.query, dto.pincode, dto.mode);
+    return this.searchService.search(dto);
   }
 
   @Public()

@@ -11,6 +11,7 @@ import { SkeletonCard } from '@/components/Skeleton';
 import { searchApi, SearchItem, ProductOption } from '@/lib/api';
 import { useCartStore, usePreferencesStore } from '@/store';
 import { Suspense } from 'react';
+import { staggerContainer, staggerItem, SPRING, STAGGER_DELAY, MOTION_SPEEDS } from '@/lib/motion';
 
 /* ── Horizontal scroll section ── */
 function HorizontalSection({
@@ -25,54 +26,56 @@ function HorizontalSection({
   if (items.length === 0) return null;
   return (
     <div className="mb-8">
-      <h3 className="text-xs font-semibold text-[#9CA3AF] uppercase tracking-widest mb-3 px-1">
+      <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-widest mb-3 px-1 font-heading">
         {title}
       </h3>
       <div className="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1 snap-x snap-mandatory scrollbar-hide">
         {items.map(({ item, option }, idx) => (
           <motion.div
             key={`${option.platform}-${item.normalized_name}-${idx}`}
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: Math.min(idx, 8) * STAGGER_DELAY, ...MOTION_SPEEDS.macro }}
             whileTap={{ scale: 0.98 }}
             onClick={() => onAddToCart(item, option)}
-            className="snap-start shrink-0 w-[260px] sm:w-[280px] bg-white rounded-2xl p-4 border border-gray-100 shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer"
+            className="snap-start shrink-0 w-[260px] sm:w-[280px] luxon-glass rounded-luxon-lg p-4 cursor-pointer"
           >
-            <div className="flex items-start gap-3 mb-3">
-              {option.image_url ? (
-                <div className="w-12 h-12 rounded-xl bg-[#F3F4F6] border border-gray-100 p-1 flex items-center justify-center shrink-0 overflow-hidden">
+            <div className="flex items-start gap-3">
+              {option.imageUrl ? (
+                <div className="w-[72px] h-[72px] rounded-luxon-md bg-white/5 border border-white/5 flex items-center justify-center overflow-hidden shrink-0">
                   <img
-                    src={option.image_url}
-                    alt={item.name}
-                    className="max-w-full max-h-full object-contain"
+                    src={option.imageUrl}
+                    alt={option.name}
+                    className="w-full h-full object-contain p-1"
                     loading="lazy"
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).style.display = 'none';
-                    }}
                   />
                 </div>
               ) : (
-                <div className="w-12 h-12 rounded-xl bg-[#F3F4F6] border border-gray-100 flex items-center justify-center shrink-0">
-                  <span className="text-sm font-bold text-[#9CA3AF]">{(item.normalized_name || item.name).charAt(0).toUpperCase()}</span>
+                <div className="w-[72px] h-[72px] rounded-luxon-md bg-white/5 border border-white/5 flex items-center justify-center overflow-hidden shrink-0">
+                  <span className="text-xl font-bold text-gray-600">
+                    {option.name.charAt(0).toUpperCase()}
+                  </span>
                 </div>
               )}
-              <div className="min-w-0 flex-1 flex items-start justify-between gap-2">
+              <div className="flex-1 min-w-0 flex items-start justify-between gap-2">
                 <div className="min-w-0">
-                  <p className="text-sm font-semibold text-[#111827] capitalize truncate leading-tight">
-                    {item.name}
+                  <p className="text-sm font-semibold text-white capitalize truncate leading-tight">
+                    {option.name}
                   </p>
-                  <p className="text-xs text-[#9CA3AF] mt-0.5 truncate">
-                    {option.quantity || 'Standard'}
+                  <p className="text-xs text-gray-500 mt-0.5 truncate">
+                    {option.metadata?.weight || 'Standard'}
                   </p>
                 </div>
-                {option.price > 0 && (
-                  <p className="text-lg font-bold text-[#111827] shrink-0">₹{option.price}</p>
+                {option.price.current > 0 && (
+                  <p className="text-lg font-bold text-white shrink-0 font-mono tabular-nums">₹{option.price.current}</p>
                 )}
               </div>
             </div>
             <div className="flex items-center justify-between">
-              <PlatformBadge platform={option.platform} />
-              <span className="text-xs text-[#6B7280] flex items-center gap-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#16A34A] live-dot" />
-                {option.eta_minutes} min
+              <PlatformBadge platform={option.platform} isWinner />
+              <span className="text-xs text-gray-500 flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 live-dot" />
+                {option.delivery.eta} min
               </span>
             </div>
           </motion.div>
@@ -98,20 +101,24 @@ function BestOptionCard({
     <motion.div
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      className="bg-white rounded-2xl p-5 sm:p-6 border border-blue-100 shadow-sm mb-8"
+      transition={SPRING.smooth}
+      className="luxon-glass rounded-luxon-xl p-5 sm:p-6 border-violet-500/20 mb-8 relative overflow-hidden"
     >
+      {/* Violet lightwell behind best option */}
+      <div className="absolute inset-0 luxon-lightwell luxon-lightwell-violet opacity-20 -z-10" />
+      
       <div className="flex items-center justify-between mb-1">
-        <span className="text-[10px] font-semibold text-[#2563EB] uppercase tracking-widest">Best Option</span>
-        <span className="text-xs text-[#9CA3AF]">{reason}</span>
+        <span className="text-[10px] font-semibold text-violet-400 uppercase tracking-widest font-heading">Best Option</span>
+        <span className="text-xs text-gray-500">{reason}</span>
       </div>
       <div className="flex items-center justify-between gap-4 mt-3">
-        <div className="flex items-center gap-3 min-w-0 flex-1">
-          {option.image_url ? (
-            <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-[#F3F4F6] border border-gray-100 p-1.5 flex items-center justify-center shrink-0 overflow-hidden">
+        <div className="flex items-center gap-4">
+          {option.imageUrl ? (
+            <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-luxon-md bg-white/5 border border-white/5 p-2 flex items-center justify-center shrink-0 overflow-hidden">
               <img
-                src={option.image_url}
+                src={option.imageUrl}
                 alt={item.name}
-                className="max-w-full max-h-full object-contain"
+                className="w-full h-full object-contain"
                 loading="lazy"
                 onError={(e) => {
                   (e.target as HTMLImageElement).style.display = 'none';
@@ -119,30 +126,31 @@ function BestOptionCard({
               />
             </div>
           ) : (
-            <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-[#F3F4F6] border border-gray-100 flex items-center justify-center shrink-0">
-              <span className="text-lg font-bold text-[#9CA3AF]">{(item.normalized_name || item.name).charAt(0).toUpperCase()}</span>
+            <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-luxon-md bg-gradient-to-br from-white/5 to-white/[0.02] border border-white/5 flex items-center justify-center shrink-0">
+              <span className="text-2xl font-bold text-gray-600">{(item.normalized_name || item.name).charAt(0).toUpperCase()}</span>
             </div>
           )}
           <div className="min-w-0">
-            <p className="text-lg sm:text-xl font-bold text-[#111827] capitalize truncate">{item.name}</p>
-            <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-              <PlatformBadge platform={option.platform} />
-              <span className="text-xs text-[#6B7280]">{option.quantity || 'Standard'}</span>
-              <span className="text-xs text-[#6B7280] flex items-center gap-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#16A34A] live-dot" />
-                {option.eta_minutes} min
+            <p className="text-lg sm:text-xl font-bold text-white capitalize truncate font-heading">{item.name}</p>
+            <div className="flex items-center gap-2 mt-1 flex-wrap">
+              <PlatformBadge platform={option.platform} isWinner />
+              <span className="text-xs text-gray-500">{option.metadata?.weight || 'Standard'}</span>
+              <span className="text-gray-600">•</span>
+              <span className="text-xs text-emerald-400 font-semibold flex items-center gap-1 font-heading">
+                {option.delivery.eta} min
               </span>
             </div>
           </div>
         </div>
         <div className="text-right shrink-0">
-          {option.price > 0 && (
-            <p className="text-2xl font-bold text-[#111827]">₹{option.price}</p>
+          {option.price.current > 0 && (
+            <p className="text-2xl font-bold text-white font-mono tabular-nums">₹{option.price.current}</p>
           )}
           <motion.button
             whileTap={{ scale: 0.95 }}
+            transition={SPRING.snappy}
             onClick={onAdd}
-            className="mt-2 px-4 py-2 bg-[#111827] text-white rounded-xl text-sm font-semibold hover:bg-[#1F2937] transition-all duration-200"
+            className="mt-2 px-4 py-2 bg-violet-600 hover:bg-violet-500 text-white rounded-luxon-sm text-sm font-semibold transition-all duration-200 shadow-lg shadow-violet-500/20 font-heading"
           >
             Add
           </motion.button>
@@ -214,7 +222,6 @@ function SearchContent() {
       return { bestOption: null, cheapestItems: [], fastestItems: [] };
     }
 
-    // Find the recommended item as "best option"
     let bestOpt: { item: SearchItem; option: ProductOption; reason: string } | null = null;
     const cheapest: { item: SearchItem; option: ProductOption }[] = [];
     const fastest: { item: SearchItem; option: ProductOption }[] = [];
@@ -222,7 +229,6 @@ function SearchContent() {
     for (const item of results) {
       if (!item.options || item.options.length === 0) continue;
 
-      // Best option: first recommended item
       if (item.recommended && !bestOpt) {
         const recOption = item.options.find((o) => o.platform === item.recommended!.platform);
         if (recOption) {
@@ -230,22 +236,19 @@ function SearchContent() {
         }
       }
 
-      // Cheapest: pick the cheapest option per item
-      const sorted = [...item.options].filter((o) => o.price > 0).sort((a, b) => a.price - b.price);
+      const sorted = [...item.options].filter((o) => o.price.current > 0).sort((a, b) => a.price.current - b.price.current);
       if (sorted.length > 0) {
         cheapest.push({ item, option: sorted[0] });
       }
 
-      // Fastest: pick the fastest option per item
-      const bySpeeed = [...item.options].filter((o) => o.eta_minutes > 0).sort((a, b) => a.eta_minutes - b.eta_minutes);
+      const bySpeeed = [...item.options].filter((o) => o.delivery.eta > 0).sort((a, b) => a.delivery.eta - b.delivery.eta);
       if (bySpeeed.length > 0) {
         fastest.push({ item, option: bySpeeed[0] });
       }
     }
 
-    // If no recommended, use overall cheapest as best
     if (!bestOpt && cheapest.length > 0) {
-      const overall = cheapest.reduce((a, b) => (a.option.price <= b.option.price ? a : b));
+      const overall = cheapest.reduce((a, b) => (a.option.price.current <= b.option.price.current ? a : b));
       bestOpt = { ...overall, reason: 'Lowest price' };
     }
 
@@ -255,12 +258,16 @@ function SearchContent() {
   const failedCount = platforms.failed.length;
 
   return (
-    <div className="w-full min-h-screen bg-[#F9FAFB]">
+    <div className="w-full min-h-screen bg-[#0A0B0D] text-[#EEF2F6] relative overflow-hidden">
+      {/* Background lightwells */}
+      <div className="absolute top-0 left-[10%] w-[50%] h-[40%] luxon-lightwell luxon-lightwell-violet animate-luxon-pulse opacity-40" />
+      <div className="absolute bottom-[10%] right-[5%] w-[40%] h-[40%] luxon-lightwell luxon-lightwell-cyan animate-luxon-pulse opacity-30" style={{ animationDelay: '-4s' }} />
+
       <Navbar />
 
       {/* Sticky search area */}
-      <div className="sticky top-14 sm:top-16 z-40 bg-[#F9FAFB]/80 backdrop-blur-xl border-b border-gray-100">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 sm:py-4">
+      <div className="sticky top-14 sm:top-16 z-40 bg-[#0A0B0D]/80 backdrop-blur-xl border-b border-white/5">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 sm:py-4 relative z-10">
           <SearchBar onSearch={handleSearch} isLoading={isLoading} />
           <div className="flex items-center justify-between mt-3">
             <PincodeBar />
@@ -269,10 +276,10 @@ function SearchContent() {
                 <button
                   key={m}
                   onClick={() => setMode(m)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 ${
+                  className={`px-3 py-1.5 rounded-luxon-sm text-xs font-semibold transition-all duration-200 font-heading ${
                     mode === m
-                      ? 'bg-[#111827] text-white'
-                      : 'text-[#6B7280] hover:bg-[#E5E7EB]'
+                      ? 'bg-violet-600 text-white shadow-lg shadow-violet-500/20'
+                      : 'text-gray-500 hover:bg-white/5 hover:text-gray-300'
                   }`}
                 >
                   {m.charAt(0).toUpperCase() + m.slice(1)}
@@ -284,34 +291,43 @@ function SearchContent() {
       </div>
 
       {/* Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8 pb-32 sm:pb-8">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8 pb-32 sm:pb-8 relative z-10">
 
-        {/* Platform status — compact, only show if there are failures */}
+        {/* Platform status */}
         {hasSearched && !isLoading && failedCount > 0 && (
-          <div className="flex items-center gap-2 mb-4 text-xs text-[#9CA3AF]">
+          <div className="flex items-center gap-2 mb-4 text-xs text-gray-500">
             <span>{platforms.responded.length} platform{platforms.responded.length !== 1 ? 's' : ''} responded</span>
-            <span className="text-gray-200">·</span>
-            <span className="text-[#DC2626]">{failedCount} unavailable</span>
+            <span className="text-gray-700">·</span>
+            <span className="text-red-400">{failedCount} unavailable</span>
           </div>
         )}
 
         {/* Loading */}
         {isLoading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <motion.div
+            variants={staggerContainer}
+            initial="hidden"
+            animate="show"
+            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"
+          >
             {[1, 2, 3, 4, 5, 6].map((i) => (
-              <SkeletonCard key={i} />
+              <motion.div key={i} variants={staggerItem}>
+                <SkeletonCard />
+              </motion.div>
             ))}
-          </div>
+          </motion.div>
         ) : results.length > 0 ? (
           <>
             {/* LAYER 1: Best option card */}
             {bestOption && (
-              <BestOptionCard
-                item={bestOption.item}
-                option={bestOption.option}
-                reason={bestOption.reason}
-                onAdd={() => handleAddToCart(bestOption.item, bestOption.option)}
-              />
+              <div className="mb-10">
+                <BestOptionCard
+                  item={bestOption.item}
+                  option={bestOption.option}
+                  reason={bestOption.reason}
+                  onAdd={() => handleAddToCart(bestOption.item, bestOption.option)}
+                />
+              </div>
             )}
 
             {/* LAYER 2: Horizontal sections */}
@@ -327,33 +343,44 @@ function SearchContent() {
             />
 
             {/* LAYER 3: All results grid */}
-            <div className="mt-2">
-              <h3 className="text-xs font-semibold text-[#9CA3AF] uppercase tracking-widest mb-3 px-1">
-                All Results
-              </h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {results.map((item, i) => (
-                  <ProductCard
-                    key={`${item.normalized_name}-${i}`}
-                    name={item.name}
-                    normalizedName={item.normalized_name}
-                    options={item.options}
-                    recommended={item.recommended}
-                    onAddToCart={(option) => handleAddToCart(item, option)}
-                  />
-                ))}
+            <div className="mt-10">
+              <div className="flex items-center justify-between mb-6 px-1">
+                <h2 className="text-lg sm:text-2xl font-bold text-white tracking-tight font-heading">
+                  All Groceries
+                </h2>
+                <span className="text-sm font-medium text-gray-500">
+                  {results.length} items
+                </span>
               </div>
+              <motion.div
+                variants={staggerContainer}
+                initial="hidden"
+                animate="show"
+                className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6 lg:gap-8"
+              >
+                {results.map((item, i) => (
+                  <motion.div key={`${item.normalized_name}-${i}`} variants={staggerItem}>
+                    <ProductCard
+                      name={item.name}
+                      normalizedName={item.normalized_name}
+                      options={item.options}
+                      recommended={item.recommended}
+                      onAddToCart={(option) => handleAddToCart(item, option)}
+                    />
+                  </motion.div>
+                ))}
+              </motion.div>
             </div>
           </>
         ) : hasSearched ? (
           <div className="text-center py-16">
-            <p className="text-[#111827] text-base font-semibold">No results found</p>
-            <p className="text-[#9CA3AF] text-sm mt-2">Try a different search term.</p>
+            <p className="text-white text-base font-semibold font-heading">No results found</p>
+            <p className="text-gray-500 text-sm mt-2">Try a different search term.</p>
           </div>
         ) : (
           <div className="text-center py-16">
-            <p className="text-[#111827] text-base font-semibold">Search for groceries above</p>
-            <p className="text-[#9CA3AF] text-sm mt-2">
+            <p className="text-white text-base font-semibold font-heading">Search for groceries above</p>
+            <p className="text-gray-500 text-sm mt-2">
               e.g. &quot;milk and bread&quot; or &quot;pasta dinner&quot;
             </p>
           </div>
@@ -366,9 +393,10 @@ function SearchContent() {
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0 }}
-              className="mt-8 bg-white rounded-2xl p-5 border border-gray-100 shadow-sm"
+              transition={SPRING.smooth}
+              className="mt-8 luxon-glass rounded-luxon-lg p-5"
             >
-              <h3 className="text-xs font-semibold text-[#9CA3AF] uppercase tracking-widest mb-3">
+              <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-widest mb-3 font-heading">
                 Related
               </h3>
               <div className="flex flex-wrap gap-2">
@@ -376,7 +404,7 @@ function SearchContent() {
                   <button
                     key={s}
                     onClick={() => handleSearch(s)}
-                    className="px-3 py-2 bg-[#F3F4F6] hover:bg-[#E5E7EB] text-[#111827] rounded-lg text-sm font-medium transition-all duration-200 capitalize"
+                    className="px-3 py-2 bg-white/5 hover:bg-white/10 text-white border border-white/5 rounded-luxon-sm text-sm font-medium transition-all duration-200 capitalize"
                   >
                     + {s}
                   </button>
@@ -387,7 +415,7 @@ function SearchContent() {
         </AnimatePresence>
 
         <div className="mt-10 text-center">
-          <p className="text-[10px] text-[#9CA3AF] max-w-lg mx-auto">
+          <p className="text-[10px] text-gray-600 max-w-lg mx-auto">
             Prices sourced from publicly available data. Not affiliated with any listed platform.
           </p>
         </div>

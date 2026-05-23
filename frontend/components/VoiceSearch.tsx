@@ -71,16 +71,16 @@ export function VoiceSearch({ onResult, disabled }: VoiceSearchProps) {
         whileTap={{ scale: 0.9 }}
         onClick={toggle}
         disabled={disabled}
-        className={`relative w-10 h-10 sm:w-11 sm:h-11 rounded-xl flex items-center justify-center transition-all ${
+        className={`relative w-10 h-10 sm:w-11 sm:h-11 rounded-luxon-sm flex items-center justify-center transition-all ${
           isListening
             ? 'bg-red-500 text-white shadow-lg shadow-red-500/30'
-            : 'bg-gray-100 text-gray-500 hover:bg-gray-200 hover:text-gray-700'
+            : 'bg-white/5 text-gray-500 hover:bg-white/10 hover:text-gray-300 border border-white/5'
         } disabled:opacity-40`}
         aria-label={isListening ? 'Stop listening' : 'Voice search'}
       >
         {isListening && (
           <motion.div
-            className="absolute inset-0 rounded-xl bg-red-400"
+            className="absolute inset-0 rounded-luxon-sm bg-red-400"
             animate={{ scale: [1, 1.3, 1], opacity: [0.5, 0, 0.5] }}
             transition={{ duration: 1.5, repeat: Infinity }}
           />
@@ -97,9 +97,9 @@ export function VoiceSearch({ onResult, disabled }: VoiceSearchProps) {
             initial={{ opacity: 0, y: 8, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 8, scale: 0.95 }}
-            className="absolute top-full right-0 mt-2 px-4 py-2 bg-white border border-gray-200 rounded-xl shadow-lg text-sm text-gray-700 font-medium whitespace-nowrap z-50 max-w-[200px] truncate"
+            className="absolute top-full right-0 mt-2 px-4 py-2 luxon-glass rounded-luxon-sm text-sm text-gray-200 font-medium whitespace-nowrap z-50 max-w-[200px] truncate"
           >
-            <span className="text-red-500 mr-1">●</span> {transcript}
+            <span className="text-red-400 mr-1">●</span> {transcript}
           </motion.div>
         )}
       </AnimatePresence>

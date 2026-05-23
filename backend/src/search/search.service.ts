@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { AggregationService } from '../aggregation/aggregation.service';
 import { AiEngineService } from '../ai-engine/ai-engine.service';
+import { SearchDto } from './dto/search.dto';
 
 /**
  * Search Service — Orchestrator
@@ -21,12 +22,9 @@ export class SearchService {
     private readonly aiEngineService: AiEngineService,
   ) {}
 
-  async search(
-    query: string,
-    pincode: string,
-    mode: 'cheapest' | 'fastest' | 'balanced' = 'balanced',
-  ) {
-    this.logger.log(`Search: "${query}" | pincode: ${pincode} | mode: ${mode}`);
+  async search(dto: SearchDto) {
+    const { query, pincode, mode = 'balanced', latitude, longitude, city } = dto;
+    this.logger.log(`Search: "${query}" | loc: ${city || pincode || 'unknown'} | mode: ${mode}`);
     const start = Date.now();
 
     // 1. Parse input through AI Engine
@@ -46,11 +44,10 @@ export class SearchService {
     const searchQueries = parsedItems.map((p) => p.item);
 
     // 3. Aggregate results for all items
-    const aggregationResult = await this.aggregationService.aggregate(
-      searchQueries.join(' '),
-      pincode,
-      mode,
-    );
+    const aggregationResult = await this.aggregationService.aggregate({
+      ...dto,
+      query: searchQueries.join(' '), // override query with parsed AI response
+    });
 
     // 4. Get co-purchase suggestions
     const suggestions = this.aiEngineService.getSuggestionsForItems(
